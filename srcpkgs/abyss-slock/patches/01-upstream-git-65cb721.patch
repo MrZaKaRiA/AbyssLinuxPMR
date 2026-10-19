@@ -1,0 +1,202 @@
+diff -ruN a/LICENSE b/LICENSE
+--- a/LICENSE	2026-10-19 23:23:42
++++ b/LICENSE	2026-10-19 23:23:42
+@@ -1,10 +1,10 @@
+ MIT/X Consortium License
+ 
++© 2016-2026 Hiltjo Posthuma <hiltjo@codemadness.org>
+ © 2015-2016 Markus Teich <markus.teich@stusta.mhn.de>
+ © 2014 Dimitris Papastamos <sin@2f30.org>
+ © 2006-2014 Anselm R Garbe <anselm@garbe.us>
+ © 2014-2016 Laslo Hunhold <dev@frign.de>
+-© 2016-2023 Hiltjo Posthuma <hiltjo@codemadness.org>
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a
+ copy of this software and associated documentation files (the "Software"),
+diff -ruN a/Makefile b/Makefile
+--- a/Makefile	2026-10-19 23:23:42
++++ b/Makefile	2026-10-19 23:23:42
+@@ -11,7 +11,7 @@
+ .c.o:
+ 	${CC} -c ${CFLAGS} $<
+ 
+-${OBJ}: config.h config.mk arg.h util.h
++${OBJ}: config.h config.mk util.h
+ 
+ config.h:
+ 	cp config.def.h $@
+@@ -25,7 +25,7 @@
+ dist: clean
+ 	mkdir -p slock-${VERSION}
+ 	cp -R LICENSE Makefile README slock.1 config.mk \
+-		${SRC} config.def.h arg.h util.h slock-${VERSION}
++		${SRC} config.def.h util.h slock-${VERSION}
+ 	tar -cf slock-${VERSION}.tar slock-${VERSION}
+ 	gzip slock-${VERSION}.tar
+ 	rm -rf slock-${VERSION}
+diff -ruN a/arg.h b/arg.h
+--- a/arg.h	2026-10-19 23:23:42
++++ b/arg.h	1970-01-01 00:00:00
+@@ -1,65 +0,0 @@
+-/*
+- * Copy me if you can.
+- * by 20h
+- */
+-
+-#ifndef ARG_H__
+-#define ARG_H__
+-
+-extern char *argv0;
+-
+-/* use main(int argc, char *argv[]) */
+-#define ARGBEGIN	for (argv0 = *argv, argv++, argc--;\
+-					argv[0] && argv[0][0] == '-'\
+-					&& argv[0][1];\
+-					argc--, argv++) {\
+-				char argc_;\
+-				char **argv_;\
+-				int brk_;\
+-				if (argv[0][1] == '-' && argv[0][2] == '\0') {\
+-					argv++;\
+-					argc--;\
+-					break;\
+-				}\
+-				for (brk_ = 0, argv[0]++, argv_ = argv;\
+-						argv[0][0] && !brk_;\
+-						argv[0]++) {\
+-					if (argv_ != argv)\
+-						break;\
+-					argc_ = argv[0][0];\
+-					switch (argc_)
+-
+-/* Handles obsolete -NUM syntax */
+-#define ARGNUM				case '0':\
+-					case '1':\
+-					case '2':\
+-					case '3':\
+-					case '4':\
+-					case '5':\
+-					case '6':\
+-					case '7':\
+-					case '8':\
+-					case '9'
+-
+-#define ARGEND			}\
+-			}
+-
+-#define ARGC()		argc_
+-
+-#define ARGNUMF()	(brk_ = 1, estrtonum(argv[0], 0, INT_MAX))
+-
+-#define EARGF(x)	((argv[0][1] == '\0' && argv[1] == NULL)?\
+-				((x), abort(), (char *)0) :\
+-				(brk_ = 1, (argv[0][1] != '\0')?\
+-					(&argv[0][1]) :\
+-					(argc--, argv++, argv[0])))
+-
+-#define ARGF()		((argv[0][1] == '\0' && argv[1] == NULL)?\
+-				(char *)0 :\
+-				(brk_ = 1, (argv[0][1] != '\0')?\
+-					(&argv[0][1]) :\
+-					(argc--, argv++, argv[0])))
+-
+-#define LNGARG()	&argv[0][0]
+-
+-#endif
+diff -ruN a/slock.1 b/slock.1
+--- a/slock.1	2026-10-19 23:23:42
++++ b/slock.1	2026-10-19 23:23:42
+@@ -1,4 +1,4 @@
+-.Dd October 6, 2023
++.Dd September 5, 2026
+ .Dt SLOCK 1
+ .Os
+ .Sh NAME
+@@ -7,14 +7,9 @@
+ .Sh SYNOPSIS
+ .Nm
+ .Op Fl v
+-.Op Ar cmd Op Ar arg ...
+ .Sh DESCRIPTION
+ .Nm
+ is a simple X screen locker.
+-If provided,
+-.Ar cmd
+-is executed after the screen has been locked.
+-.Pp
+ The options are as follows:
+ .Bl -tag -width Ds
+ .It Fl v
+@@ -22,10 +17,6 @@
+ .El
+ .Sh EXIT STATUS
+ .Ex -std
+-.Sh EXAMPLES
+-$
+-.Nm
+-/usr/sbin/s2ram
+ .Sh SECURITY CONSIDERATIONS
+ To make sure a locked screen can not be bypassed by switching VTs
+ or killing the X server with Ctrl+Alt+Backspace, it is recommended
+diff -ruN a/slock.c b/slock.c
+--- a/slock.c	2026-10-19 23:23:42
++++ b/slock.c	2026-10-19 23:23:42
+@@ -13,14 +13,12 @@
+ #include <stdio.h>
+ #include <string.h>
+ #include <unistd.h>
+-#include <spawn.h>
+ #include <sys/types.h>
+ #include <X11/extensions/Xrandr.h>
+ #include <X11/keysym.h>
+ #include <X11/Xlib.h>
+ #include <X11/Xutil.h>
+ 
+-#include "arg.h"
+ #include "util.h"
+ 
+ char *argv0;
+@@ -304,7 +302,7 @@
+ static void
+ usage(void)
+ {
+-	die("usage: slock [-v] [cmd [arg ...]]\n");
++	die("usage: slock [-v]\n");
+ }
+ 
+ int
+@@ -319,13 +317,12 @@
+ 	Display *dpy;
+ 	int s, nlocks, nscreens;
+ 
+-	ARGBEGIN {
+-	case 'v':
++	if (argc > 1 && !strcmp(argv[1], "-v")) {
+ 		puts("slock-"VERSION);
+ 		return 0;
+-	default:
++	} else if (argc > 1) {
+ 		usage();
+-	} ARGEND
++	}
+ 
+ 	/* validate drop-user and -group */
+ 	errno = 0;
+@@ -377,17 +374,6 @@
+ 	/* did we manage to lock everything? */
+ 	if (nlocks != nscreens)
+ 		return 1;
+-
+-	/* run post-lock command */
+-	if (argc > 0) {
+-		pid_t pid;
+-		extern char **environ;
+-		int err = posix_spawnp(&pid, argv[0], NULL, NULL, argv, environ);
+-		if (err) {
+-			die("slock: failed to execute post-lock command: %s: %s\n",
+-			    argv[0], strerror(err));
+-		}
+-	}
+ 
+ 	/* everything is now blank. Wait for the correct password */
+ 	readpw(dpy, &rr, locks, nscreens, hash);

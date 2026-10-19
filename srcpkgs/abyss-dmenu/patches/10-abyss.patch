@@ -1,0 +1,165 @@
+diff --git a/config.def.h b/config.def.h
+index 1edb647..d4da214 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -1,17 +1,21 @@
+ /* See LICENSE file for copyright and license details. */
+-/* Default settings; can be overriden by command line. */
+-
+ static int topbar = 1;                      /* -b  option; if 0, dmenu appears at bottom     */
++static int centered = 0;                    /* -c  option; centers dmenu on screen           */
++static int min_width = 600;                 /* minimum width when centered                   */
++static unsigned int border_width = 0;       /* -bw option; border width around dmenu window  */
++static unsigned int line_height = 28;       /* -h  option; minimum height of each bar/line   */
+ /* -fn option overrides fonts[0]; default X11 font or font set */
+ static const char *fonts[] = {
++	"JetBrainsMono Nerd Font:size=10:antialias=true:autohint=true",
++	"Symbols Nerd Font Mono:size=10:antialias=true:autohint=true",
+ 	"monospace:size=10"
+ };
+ static const char *prompt      = NULL;      /* -p  option; prompt to the left of input field */
+ static const char *colors[SchemeLast][2] = {
+-	/*     fg         bg       */
+-	[SchemeNorm] = { "#bbbbbb", "#222222" },
+-	[SchemeSel] = { "#eeeeee", "#005577" },
+-	[SchemeOut] = { "#000000", "#00ffff" },
++	/*               fg         bg       */
++	[SchemeNorm] = { "#f3e8ff", "#0d0b18" },
++	[SchemeSel]  = { "#090514", "#a855f7" },
++	[SchemeOut]  = { "#090514", "#38bdf8" },
+ };
+ /* -l option; if nonzero, dmenu uses vertical list with given number of lines */
+ static unsigned int lines      = 0;
+diff --git a/dmenu.c b/dmenu.c
+index 2c64545..992a22b 100644
+--- a/dmenu.c
++++ b/dmenu.c
+@@ -39,6 +39,7 @@ static int bh, mw, mh;
+ static int inputw = 0, promptw;
+ static int lrpad; /* sum of left and right padding */
+ static size_t cursor;
++static int passwd = 0;
+ static struct item *items = NULL;
+ static struct item *matches, *matchend;
+ static struct item *prev, *curr, *next, *sel;
+@@ -54,8 +55,9 @@ static Clr *scheme[SchemeLast];
+ 
+ #include "config.h"
+ 
+-static int (*fstrncmp)(const char *, const char *, size_t) = strncmp;
+-static char *(*fstrstr)(const char *, const char *) = strstr;
++static char *cistrstr(const char *h, const char *n);
++static int (*fstrncmp)(const char *, const char *, size_t) = strncasecmp;
++static char *(*fstrstr)(const char *, const char *) = cistrstr;
+ 
+ static unsigned int
+ textw_clamp(const char *str, unsigned int n)
+@@ -157,15 +159,22 @@ drawmenu(void)
+ 		x = drw_text(drw, x, 0, promptw, bh, lrpad / 2, prompt, 0);
+ 	}
+ 	/* draw input field */
++	char *censort = NULL;
++	if (passwd) {
++		censort = ecalloc(1, sizeof(text));
++		memset(censort, '*', strlen(text));
++	}
+ 	w = (lines > 0 || !matches) ? mw - x : inputw;
+ 	drw_setscheme(drw, scheme[SchemeNorm]);
+-	drw_text(drw, x, 0, w, bh, lrpad / 2, text, 0);
++	drw_text(drw, x, 0, w, bh, lrpad / 2, passwd ? censort : text, 0);
+ 
+-	curpos = TEXTW(text) - TEXTW(&text[cursor]);
++	curpos = TEXTW(passwd ? censort : text) - TEXTW(passwd ? &censort[cursor] : &text[cursor]);
+ 	if ((curpos += lrpad / 2 - 1) < w) {
+ 		drw_setscheme(drw, scheme[SchemeNorm]);
+ 		drw_rect(drw, x + curpos, 2, 2, bh - 4, 1, 0);
+ 	}
++	if (passwd)
++		free(censort);
+ 
+ 	if (lines > 0) {
+ 		/* draw vertical list */
+@@ -633,7 +642,7 @@ setup(void)
+ 	utf8 = XInternAtom(dpy, "UTF8_STRING", False);
+ 
+ 	/* calculate menu geometry */
+-	bh = drw->fonts->h + 2;
++	bh = line_height > 0 ? line_height : drw->fonts->h + 2;
+ 	lines = MAX(lines, 0);
+ 	mh = (lines + 1) * bh;
+ #ifdef XINERAMA
+@@ -670,6 +679,11 @@ setup(void)
+ 		x = info[i].x_org;
+ 		y = info[i].y_org + (topbar ? 0 : info[i].height - mh);
+ 		mw = info[i].width;
++		if (centered) {
++			mw = MIN(MAX(min_width, mw / 2), info[i].width - 2 * border_width);
++			x = info[i].x_org + ((info[i].width  - mw) / 2);
++			y = info[i].y_org + ((info[i].height - mh) / 2);
++		}
+ 		XFree(info);
+ 	} else
+ #endif
+@@ -680,6 +694,11 @@ setup(void)
+ 		x = 0;
+ 		y = topbar ? 0 : wa.height - mh;
+ 		mw = wa.width;
++		if (centered) {
++			mw = MIN(MAX(min_width, mw / 2), wa.width - 2 * border_width);
++			x = (wa.width  - mw) / 2;
++			y = (wa.height - mh) / 2;
++		}
+ 	}
+ 	promptw = (prompt && *prompt) ? TEXTW(prompt) - lrpad / 4 : 0;
+ 	inputw = mw / 3; /* input width: ~33% of monitor width */
+@@ -688,10 +707,11 @@ setup(void)
+ 	/* create menu window */
+ 	swa.override_redirect = True;
+ 	swa.background_pixel = scheme[SchemeNorm][ColBg].pixel;
++	swa.border_pixel = scheme[SchemeSel][ColBg].pixel;
+ 	swa.event_mask = ExposureMask | KeyPressMask | VisibilityChangeMask;
+-	win = XCreateWindow(dpy, root, x, y, mw, mh, 0,
++	win = XCreateWindow(dpy, root, x, y, mw, mh, border_width,
+ 	                    CopyFromParent, CopyFromParent, CopyFromParent,
+-	                    CWOverrideRedirect | CWBackPixel | CWEventMask, &swa);
++	                    CWOverrideRedirect | CWBackPixel | CWBorderPixel | CWEventMask, &swa);
+ 	XSetClassHint(dpy, win, &ch);
+ 
+ 	/* input methods */
+@@ -720,8 +740,8 @@ setup(void)
+ static void
+ usage(void)
+ {
+-	die("usage: dmenu [-bfiv] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
+-	    "             [-nb color] [-nf color] [-sb color] [-sf color] [-w windowid]");
++	die("usage: dmenu [-bcfiv] [-l lines] [-p prompt] [-fn font] [-m monitor]\n"
++	    "             [-nb color] [-nf color] [-sb color] [-sf color] [-bw width] [-w windowid]");
+ }
+ 
+ int
+@@ -737,7 +757,13 @@ main(int argc, char *argv[])
+ 			exit(0);
+ 		} else if (!strcmp(argv[i], "-b")) /* appears at the bottom of the screen */
+ 			topbar = 0;
+-		else if (!strcmp(argv[i], "-f"))   /* grabs keyboard before reading stdin */
++		else if (!strcmp(argv[i], "-c")) { /* centers dmenu on screen */
++			centered = 1;
++			if (border_width == 0)
++				border_width = 2;
++		} else if (!strcmp(argv[i], "-P")) /* censor input */
++			passwd = 1;
++		else if (!strcmp(argv[i], "-f")) /* grabs keyboard before reading stdin */
+ 			fast = 1;
+ 		else if (!strcmp(argv[i], "-i")) { /* case-insensitive item matching */
+ 			fstrncmp = strncasecmp;
+@@ -747,6 +773,10 @@ main(int argc, char *argv[])
+ 		/* these options take one argument */
+ 		else if (!strcmp(argv[i], "-l"))   /* number of lines in vertical list */
+ 			lines = atoi(argv[++i]);
++		else if (!strcmp(argv[i], "-h"))   /* minimum height of each bar */
++			line_height = atoi(argv[++i]);
++		else if (!strcmp(argv[i], "-bw"))  /* border width */
++			border_width = atoi(argv[++i]);
+ 		else if (!strcmp(argv[i], "-m"))
+ 			mon = atoi(argv[++i]);
+ 		else if (!strcmp(argv[i], "-p"))   /* adds prompt to left of input field */

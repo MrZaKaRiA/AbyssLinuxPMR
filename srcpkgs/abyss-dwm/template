@@ -1,0 +1,28 @@
+# Template file for 'abyss-dwm'
+# dwm 6.8 + upstream git bca7cf2 + Abyss patches (patches/):
+#   systray, status2d, vanitygaps, scratchpad, attachaside, autostart,
+#   Abyss purple theme, status-bar click opens the Abyss menu
+pkgname=abyss-dwm
+version=6.8
+revision=1
+_gitrev=bca7cf2
+wrksrc="dwm-${version}"
+makedepends="libXinerama-devel libXft-devel freetype-devel"
+short_desc="Dynamic window manager for X (Abyss Linux build)"
+maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
+license="MIT"
+homepage="https://github.com/MrZaKaRiA/AbyssLinux"
+distfiles="https://dl.suckless.org/dwm/dwm-${version}.tar.gz"
+checksum=bcf540589ad174d4073f4efa658828411e2f5ba63196cfaf6b71363700f590b7
+conflicts="dwm>=0"
+
+do_build() {
+	vsed -e "/CFLAGS/s|\${CPPFLAGS}|& $CFLAGS|g" -i config.mk
+	make CC=$CC INCS="-I. -I${XBPS_CROSS_BASE}/usr/include/freetype2" LIBS="-lX11 -lXinerama -lXft -lfontconfig"
+}
+
+do_install() {
+	make PREFIX=/usr DESTDIR=$DESTDIR install
+	vinstall README 644 usr/share/doc/$pkgname
+	vlicense LICENSE
+}

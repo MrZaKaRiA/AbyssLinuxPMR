@@ -1,0 +1,34 @@
+# Template file for 'abyss-st'
+# st 0.9.3 + upstream git fdaadd5 + Abyss patches (patches/):
+#   clipboard (selection also goes to CLIPBOARD), Abyss palette,
+#   JetBrainsMono Nerd Font in points so it follows Xft.dpi (HiDPI)
+pkgname=abyss-st
+version=0.9.3
+revision=1
+_gitrev=fdaadd5
+wrksrc="st-${version}"
+build_style=gnu-makefile
+make_use_env=compliant
+hostmakedepends="pkg-config ncurses"
+makedepends="fontconfig-devel libX11-devel libXft-devel"
+depends="ncurses st-terminfo"
+short_desc="Simple terminal implementation for X (Abyss Linux build)"
+maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
+license="MIT"
+homepage="https://github.com/MrZaKaRiA/AbyssLinux"
+distfiles="https://dl.suckless.org/st/st-${version}.tar.gz"
+checksum=9ed9feabcded713d4ded38c8cebf36a3b08f0042ef7934a0e2b2409da56e649b
+conflicts="st>=0"
+
+pre_install() {
+	# terminfo comes from Void's st-terminfo package
+	export TERMINFO=${wrksrc}/terminfo-unused
+	mkdir -p $TERMINFO
+}
+
+post_install() {
+	rm -rf ${DESTDIR}/usr/share/terminfo
+	vdoc README
+	vdoc FAQ
+	vlicense LICENSE
+}

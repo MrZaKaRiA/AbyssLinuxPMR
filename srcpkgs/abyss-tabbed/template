@@ -1,0 +1,25 @@
+# Template file for 'abyss-tabbed'
+# tabbed 0.9 + upstream git e65146d + Abyss font/colours (patches/)
+pkgname=abyss-tabbed
+version=0.9
+revision=1
+_gitrev=e65146d
+wrksrc="tabbed-${version}"
+build_style=gnu-makefile
+hostmakedepends="freetype-devel"
+makedepends="libX11-devel libXft-devel"
+short_desc="Tab interface for applications supporting XEmbed (Abyss Linux build)"
+maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
+license="MIT"
+homepage="https://github.com/MrZaKaRiA/AbyssLinux"
+distfiles="https://dl.suckless.org/tools/tabbed-${version}.tar.gz"
+checksum=0acf87457b7419e66fbfa3a9cec95ffb46d254c6b88b5e4bb7cc18c3a92008a8
+conflicts="tabbed>=0"
+
+pre_build() {
+	vsed -i 's|X11R6/||g' Makefile
+}
+
+post_install() {
+	vlicense LICENSE
+}

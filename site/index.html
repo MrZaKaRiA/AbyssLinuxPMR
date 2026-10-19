@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abyss Linux PMR</title>
+<style>
+  :root { --bg: #0d0b18; --fg: #f3e8ff; --dim: #a78bfa; --accent: #a855f7; --panel: #1a1428; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 ui-monospace, "JetBrains Mono", Menlo, monospace; }
+  main { max-width: 760px; margin: 0 auto; padding: 48px 16px; }
+  h1 { color: var(--accent); font-size: 28px; margin: 0 0 8px; }
+  p { color: var(--dim); }
+  pre { background: var(--panel); border: 1px solid #2e1065; border-radius: 8px; padding: 14px 16px; overflow-x: auto; color: var(--fg); }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Abyss Linux PMR</h1>
+  <p>Signed XBPS repository with the Abyss builds of the suckless tools
+     (dwm, st, dmenu, slock, tabbed, wmname) for x86_64 and aarch64.
+     Abyss Linux installs already use it. On another Void Linux system:</p>
+<pre>sudo curl -fLo /var/db/xbps/keys/c6:f0:d1:05:cb:f1:89:83:58:c2:e2:e4:4c:c9:09:9a.plist \
+  https://mrzakaria.github.io/AbyssLinuxPMR/keys/c6:f0:d1:05:cb:f1:89:83:58:c2:e2:e4:4c:c9:09:9a.plist
+echo 'repository=https://mrzakaria.github.io/AbyssLinuxPMR/current' | sudo tee /etc/xbps.d/20-abyss-pmr.conf
+sudo xbps-install -S abyss-dwm abyss-st abyss-dmenu</pre>
+  <p>Repository: <a href="current/">current/</a> &middot; Key: <a href="keys/">keys/</a> &middot;
+     Source and templates: <a href="https://github.com/MrZaKaRiA/AbyssLinuxPMR">github.com/MrZaKaRiA/AbyssLinuxPMR</a> &middot;
+     Distribution: <a href="https://github.com/MrZaKaRiA/AbyssLinux">github.com/MrZaKaRiA/AbyssLinux</a></p>
+</main>
+</body>
+</html>

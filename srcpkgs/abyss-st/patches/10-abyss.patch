@@ -1,0 +1,94 @@
+diff --git a/config.def.h b/config.def.h
+index fd2bd87..8321b47 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -5,8 +5,8 @@
+  *
+  * font: see http://freedesktop.org/software/fontconfig/fontconfig-user.html
+  */
+-static char *font = "Liberation Mono:pixelsize=12:antialias=true:autohint=true";
+-static int borderpx = 2;
++static char *font = "JetBrainsMono Nerd Font:size=11:antialias=true:autohint=true"; /* points: follows Xft.dpi */
++static int borderpx = 14;
+ 
+ /*
+  * What program is execed by st depends of these precedence rules:
+@@ -16,7 +16,7 @@ static int borderpx = 2;
+  * 4: value of shell in /etc/passwd
+  * 5: value of shell in config.h
+  */
+-static char *shell = "/bin/sh";
++static char *shell = "/bin/bash";
+ char *utmp = NULL;
+ /* scroll program: to enable use a string like "scroll" */
+ char *scroll = NULL;
+@@ -93,35 +93,35 @@ char *termname = "st-256color";
+  */
+ unsigned int tabspaces = 8; /* must be > 0 */
+ 
+-/* Terminal colors (16 first used in escape sequence) */
++/* Terminal colors (16 first used in escape sequence) - Abyss Cosmic Purple */
+ static const char *colorname[] = {
+ 	/* 8 normal colors */
+-	"black",
+-	"red3",
+-	"green3",
+-	"yellow3",
+-	"blue2",
+-	"magenta3",
+-	"cyan3",
+-	"gray90",
++	"#28203d", /* black   */
++	"#f43f5e", /* red     */
++	"#4ade80", /* green   */
++	"#facc15", /* yellow  */
++	"#38bdf8", /* blue    */
++	"#c084fc", /* magenta */
++	"#2dd4bf", /* cyan    */
++	"#e9d5ff", /* white   */
+ 
+ 	/* 8 bright colors */
+-	"gray50",
+-	"red",
+-	"green",
+-	"yellow",
+-	"#5c5cff",
+-	"magenta",
+-	"cyan",
+-	"white",
++	"#4c1d95", /* bright black   */
++	"#fb7185", /* bright red     */
++	"#86efac", /* bright green   */
++	"#fde047", /* bright yellow  */
++	"#7dd3fc", /* bright blue    */
++	"#e879f9", /* bright magenta */
++	"#5eead4", /* bright cyan    */
++	"#f3e8ff", /* bright white   */
+ 
+ 	[255] = 0,
+ 
+ 	/* more colors can be added after 255 to use with DefaultXX */
+-	"#cccccc",
+-	"#555555",
+-	"gray90", /* default foreground colour */
+-	"black", /* default background colour */
++	"#c084fc", /* 256 -> cursor */
++	"#28203d", /* 257 -> rev cursor */
++	"#f3e8ff", /* 258 -> default foreground colour */
++	"#0d0b18", /* 259 -> default background colour */
+ };
+ 
+ 
+diff --git a/x.c b/x.c
+index 76f572d..fe200f8 100644
+--- a/x.c
++++ b/x.c
+@@ -686,6 +686,8 @@ setsel(char *str, Time t)
+ 	XSetSelectionOwner(xw.dpy, XA_PRIMARY, xw.win, t);
+ 	if (XGetSelectionOwner(xw.dpy, XA_PRIMARY) != xw.win)
+ 		selclear();
++
++	xclipcopy();
+ }
+ 
+ void

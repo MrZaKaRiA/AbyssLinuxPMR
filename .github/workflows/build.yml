@@ -1,0 +1,81 @@
+name: Build and publish packages
+
+# Every push to main that touches a template rebuilds all Abyss packages for
+# x86_64 and aarch64, signs the repository and publishes it on GitHub Pages:
+#   https://mrzakaria.github.io/AbyssLinuxPMR/current
+# Pull requests only build (no signing key, no publishing).
+
+on:
+  push:
+    branches: [main]
+    paths: ['srcpkgs/**', 'common/**', 'keys/**', 'site/**', '.github/workflows/**']
+  pull_request:
+    paths: ['srcpkgs/**', 'common/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pmr-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build x86_64 + aarch64
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/void-linux/void-glibc-full
+      options: --privileged
+      volumes:
+        - /dev:/dev
+
+    steps:
+      - name: Prepare container
+        run: |
+          mkdir -p /etc/xbps.d && cp /usr/share/xbps.d/*-repository-*.conf /etc/xbps.d/
+          sed -i 's|repo-default|repo-ci|g' /etc/xbps.d/*-repository-*.conf
+          xbps-install -Syu xbps && xbps-install -yu && xbps-install -y sudo bash curl git
+          useradd -G xbuilder -M builder
+
+      - uses: actions/checkout@v4
+
+      - name: Build packages
+        run: bash common/build.sh
+
+      - name: Sign repository
+        if: github.event_name != 'pull_request'
+        env:
+          XBPS_SIGNING_KEY: ${{ secrets.XBPS_SIGNING_KEY }}
+        run: bash common/sign.sh public/current
+
+      - name: Assemble site
+        if: github.event_name != 'pull_request'
+        run: |
+          cp -r site/. public/
+          mkdir -p public/keys
+          cp keys/abyss-pmr.plist keys/abyss-pmr.pub.pem keys/FINGERPRINT public/keys/
+          cp keys/abyss-pmr.plist "public/keys/$(cat keys/FINGERPRINT).plist"
+          { echo '<!doctype html><meta charset="utf-8"><title>Abyss PMR - current</title><pre>'
+            (cd public/current && ls -l --time-style=+%F | awk 'NR>1 {printf "<a href=\"%s\">%s</a>  %s  %s\n", $7, $7, $6, $5}')
+            echo '</pre>'; } > public/current/index.html
+          ls -lR public
+
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: public
+
+  deploy:
+    name: Publish to GitHub Pages
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

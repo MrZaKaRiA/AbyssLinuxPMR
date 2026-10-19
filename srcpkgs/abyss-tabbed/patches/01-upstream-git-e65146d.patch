@@ -1,0 +1,20 @@
+diff -ruN a/TODO b/TODO
+--- a/TODO	1970-01-01 00:00:00
++++ b/TODO	2026-10-19 23:23:42
+@@ -0,0 +1,4 @@
++# TODO
++* add some way to detach windows
++* add some way to attach windows
++
+diff -ruN a/tabbed.c b/tabbed.c
+--- a/tabbed.c	2026-10-19 23:23:42
++++ b/tabbed.c	2026-10-19 23:23:42
+@@ -214,7 +214,7 @@
+ {
+ 	int i;
+ 
+-	for (i = 0; i < nclients; i++) {
++	for (i = nclients - 1; i >= 0; i--) {
+ 		focus(i);
+ 		killclient(NULL);
+ 		XReparentWindow(dpy, clients[i]->win, root, 0, 0);

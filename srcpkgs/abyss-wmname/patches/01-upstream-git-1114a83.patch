@@ -1,0 +1,77 @@
+diff -ruN a/LICENSE b/LICENSE
+--- a/LICENSE	2026-10-19 23:23:42
++++ b/LICENSE	2026-10-19 23:23:42
+@@ -1,6 +1,6 @@
+ MIT/X Consortium License
+ 
+-© 2008 Anselm R Garbe <garbeam at gmail dot com>
++© 2008-2013 Anselm R Garbe <garbeam at gmail dot com>
+ 
+ Permission is hereby granted, free of charge, to any person obtaining a
+ copy of this software and associated documentation files (the "Software"),
+diff -ruN a/Makefile b/Makefile
+--- a/Makefile	2026-10-19 23:23:42
++++ b/Makefile	2026-10-19 23:23:42
+@@ -32,7 +32,7 @@
+ dist: clean
+ 	@echo creating dist tarball
+ 	@mkdir -p wmname-${VERSION}
+-	@cp -R LICENSE Makefile README config.mk ${SRC} wmname-${VERSION}
++	@cp -R LICENSE Makefile README config.mk wmname.1 ${SRC} wmname-${VERSION}
+ 	@tar -cf wmname-${VERSION}.tar wmname-${VERSION}
+ 	@gzip wmname-${VERSION}.tar
+ 	@rm -rf wmname-${VERSION}
+@@ -42,6 +42,10 @@
+ 	@mkdir -p ${DESTDIR}${PREFIX}/bin
+ 	@cp -f wmname ${DESTDIR}${PREFIX}/bin
+ 	@chmod 755 ${DESTDIR}${PREFIX}/bin/wmname
++	@echo installing manual page to ${DESTDIR}${MANPREFIX}/man1
++	@mkdir -p ${DESTDIR}${MANPREFIX}/man1
++	@sed "s/VERSION/${VERSION}/g" < wmname.1 > ${DESTDIR}${MANPREFIX}/man1/wmname.1
++	@chmod 644 ${DESTDIR}${MANPREFIX}/man1/wmname.1
+ 
+ uninstall:
+ 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
+diff -ruN a/config.mk b/config.mk
+--- a/config.mk	2026-10-19 23:23:42
++++ b/config.mk	2026-10-19 23:23:42
+@@ -1,5 +1,5 @@
+ # wmname version
+-VERSION = 0.1
++VERSION = 0.2
+ 
+ # Customize below to fit your system
+ 
+diff -ruN a/wmname.1 b/wmname.1
+--- a/wmname.1	1970-01-01 00:00:00
++++ b/wmname.1	2026-10-19 23:23:42
+@@ -0,0 +1,17 @@
++.TH WMNAME 1 wmname\-VERSION
++.SH NAME
++wmname \- prints/sets the EWMH WM name property.
++.SH SYNOPSIS
++.B wmname
++.IR [name]
++.SH DESCRIPTION
++.B wmname
++Prints/sets the window manager name property of the root window similar to how hostname(1) behaves.
++.B wmname
++wmname is a nice utility to fix problems with JDK versions and other broken programs assuming a reparenting window manager for instance.
++.SH AUTHORS
++Anselm R Garbe <garbeam at gmail dot com>
++.SH LICENSE
++MIT/X Consortium License. See the LICENSE file for the terms of redistribution.
++.SH SEE ALSO
++.BR dwm (1)
+diff -ruN a/wmname.c b/wmname.c
+--- a/wmname.c	2026-10-19 23:23:42
++++ b/wmname.c	2026-10-19 23:23:42
+@@ -29,7 +29,7 @@
+ 	if(argc > 2)
+ 		eprint("usage: wmname [name] [-v]\n");
+ 	else if(argc == 2 && !strncmp(argv[1], "-v", 3))
+-		eprint("wmname-"VERSION", © 2008 Anselm R Garbe\n", stdout);
++		eprint("wmname-"VERSION", © 2008-2013 Anselm R Garbe\n", stdout);
+ 
+ 	if(!(dpy = XOpenDisplay(0)))
+ 		eprint("wmname: cannot open display\n");
