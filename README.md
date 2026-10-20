@@ -14,7 +14,7 @@ https://mrzakaria.github.io/AbyssLinuxPMR/current
 | `abyss-slock` | slock 1.7 + git `65cb721` | `1.7_1` | Screen locker |
 | `abyss-tabbed` | tabbed 0.9 + git `e65146d` | `0.9_1` | Tabs for XEmbed applications |
 | `abyss-wmname` | wmname 0.1 + git `1114a83` | `0.1_1` | Sets the WM name (`LG3D`) so Java GUIs render under dwm |
-| `abyss-theme` | Abyss | `1.0_1` (noarch) | Dark GTK 3 theme "Abyss" + "Abyss" icons (Papirus-Dark, violet folders) for Thunar and other GTK apps |
+| `abyss-theme` | Abyss | `1.0_1` | Dark GTK 3 theme "Abyss" + "Abyss" icons (Papirus-Dark, violet folders) for Thunar and other GTK apps |
 
 Each suckless package conflicts with Void's stock package of the same tool (`dwm`, `st`, …), so only one build is installed at a time. `abyss-dwm` depends on `abyss-theme`, so the desktop look arrives with the window manager.
 

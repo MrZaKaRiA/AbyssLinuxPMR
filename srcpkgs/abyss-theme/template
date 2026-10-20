@@ -5,7 +5,6 @@
 pkgname=abyss-theme
 version=1.0
 revision=1
-archs=noarch
 depends="papirus-icon-theme xdg-user-dirs"
 short_desc="Abyss Linux dark GTK theme and violet folder icons"
 maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
