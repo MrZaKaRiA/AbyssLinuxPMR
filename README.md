@@ -8,7 +8,7 @@ https://mrzakaria.github.io/AbyssLinuxPMR/current
 
 | Package | Upstream | Abyss build | What it is |
 |---|---|---|---|
-| `abyss-dwm` | dwm 6.8 + git `bca7cf2` | `6.8_1` | Dynamic tiling window manager, the Abyss desktop |
+| `abyss-dwm` | dwm 6.8 + git `bca7cf2` | `6.8_2` | Dynamic tiling window manager, the Abyss desktop |
 | `abyss-st` | st 0.9.3 + git `fdaadd5` | `0.9.3_1` | Simple terminal |
 | `abyss-dmenu` | dmenu 5.4 + git `8627d0c` | `5.4_1` | Keyboard-driven menu and launcher |
 | `abyss-slock` | slock 1.7 + git `65cb721` | `1.7_1` | Screen locker |
