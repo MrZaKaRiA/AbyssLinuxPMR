@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=X-GNOME-Metatheme
+Name=Abyss
+Comment=Abyss Linux: dark Adwaita with the Abyss purple palette
+Encoding=UTF-8
+
+[X-GNOME-Metatheme]
+GtkTheme=Abyss
+IconTheme=Abyss

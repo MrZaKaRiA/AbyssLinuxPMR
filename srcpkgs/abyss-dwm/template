@@ -1,13 +1,16 @@
 # Template file for 'abyss-dwm'
 # dwm 6.8 + upstream git bca7cf2 + Abyss patches (patches/):
 #   systray, status2d, vanitygaps, scratchpad, attachaside, autostart,
-#   Abyss purple theme, status-bar click opens the Abyss menu
+#   movestack, shiftview (+ shifttag), Abyss purple theme, status-bar
+#   click opens the Abyss menu
 pkgname=abyss-dwm
 version=6.8
-revision=2
+revision=3
 _gitrev=bca7cf2
 wrksrc="dwm-${version}"
 makedepends="libXinerama-devel libXft-devel freetype-devel"
+# pulls the Abyss GTK/icon theme so existing installs get it with xbps-install -Su
+depends="abyss-theme"
 short_desc="Dynamic window manager for X (Abyss Linux build)"
 maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
 license="MIT"

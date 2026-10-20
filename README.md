@@ -8,14 +8,15 @@ https://mrzakaria.github.io/AbyssLinuxPMR/current
 
 | Package | Upstream | Abyss build | What it is |
 |---|---|---|---|
-| `abyss-dwm` | dwm 6.8 + git `bca7cf2` | `6.8_2` | Dynamic tiling window manager, the Abyss desktop |
+| `abyss-dwm` | dwm 6.8 + git `bca7cf2` | `6.8_3` | Dynamic tiling window manager, the Abyss desktop |
 | `abyss-st` | st 0.9.3 + git `fdaadd5` | `0.9.3_1` | Simple terminal |
 | `abyss-dmenu` | dmenu 5.4 + git `8627d0c` | `5.4_1` | Keyboard-driven menu and launcher |
 | `abyss-slock` | slock 1.7 + git `65cb721` | `1.7_1` | Screen locker |
 | `abyss-tabbed` | tabbed 0.9 + git `e65146d` | `0.9_1` | Tabs for XEmbed applications |
 | `abyss-wmname` | wmname 0.1 + git `1114a83` | `0.1_1` | Sets the WM name (`LG3D`) so Java GUIs render under dwm |
+| `abyss-theme` | Abyss | `1.0_1` (noarch) | Dark GTK 3 theme "Abyss" + "Abyss" icons (Papirus-Dark, violet folders) for Thunar and other GTK apps |
 
-Each package conflicts with Void's stock package of the same tool (`dwm`, `st`, …), so only one build is installed at a time.
+Each suckless package conflicts with Void's stock package of the same tool (`dwm`, `st`, …), so only one build is installed at a time. `abyss-dwm` depends on `abyss-theme`, so the desktop look arrives with the window manager.
 
 ---
 
@@ -93,11 +94,15 @@ Everything is reproducible from this repository plus the public tarballs, so any
 | [scratchpad](https://dwm.suckless.org/patches/scratchpad/) | Drop-down terminal on `` Super+` `` |
 | [attachaside](https://dwm.suckless.org/patches/attachaside/) | New windows go to the stack, the master stays put |
 | [autostart](https://dwm.suckless.org/patches/autostart/) | Runs `~/.dwm/autostart.sh` at start |
+| [movestack](https://dwm.suckless.org/patches/movestack/) | Move the window itself down/up the stack: `Super+Shift+j/k` or `Super+Shift+↓/↑` |
+| [shiftview](https://dwm.suckless.org/patches/shiftview/) + shifttag | Previous/next desktop `Super+←/→`; carry the window there `Super+Shift+←/→` |
 | Abyss config | Purple theme `#a855f7`, JetBrainsMono Nerd Font, `Super` as mod key, a status-bar click runs `abyss-control-center` (the Menu button), `Super+Esc` menu, `Super+F1` cheatsheet |
 
 **abyss-st**: [clipboard](https://st.suckless.org/patches/clipboard/) (a selection is also copied to CLIPBOARD), the Abyss 16-colour palette, and the font set in points (`size=11`) so it follows `Xft.dpi` on HiDPI screens.
 
 **abyss-dmenu**: [center](https://tools.suckless.org/dmenu/patches/center/) (`-c`), [border](https://tools.suckless.org/dmenu/patches/border/) (`-bw`), [line-height](https://tools.suckless.org/dmenu/patches/line-height/) (`-h`), [password](https://tools.suckless.org/dmenu/patches/password/) (`-P`), case-insensitive matching by default, Abyss colours and font.
+
+**abyss-theme**: `/usr/share/themes/Abyss` (GTK's Adwaita dark with the Abyss palette), `/usr/share/icons/Abyss` (inherits Papirus-Dark; 600 folder links point at Papirus' violet set, generated in `files/violet-folders.list`), and system-wide `/etc/xdg/gtk-3.0/settings.ini`. A user's own `~/.config/gtk-3.0/settings.ini` still wins.
 
 **abyss-slock**, **abyss-tabbed**: configuration only (privilege-drop group, colours, font). **abyss-wmname**: unmodified upstream git.
 

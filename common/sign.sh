@@ -23,10 +23,13 @@ fi
 
 cd "$DIR"
 rm -f ./*-repodata ./*.sig ./*.sig2
-archs="$(ls ./*.xbps | sed -E 's/.*\.([^.]+)\.xbps$/\1/' | sort -u)"
+archs="$(ls ./*.xbps | sed -E 's/.*\.([^.]+)\.xbps$/\1/' | grep -vx noarch | sort -u)"
 
 for arch in $archs; do
-    XBPS_TARGET_ARCH="$arch" xbps-rindex -a "$DIR"/*."$arch".xbps
+    # noarch packages (themes, scripts) belong in every architecture's index
+    set -- "$DIR"/*."$arch".xbps
+    for n in "$DIR"/*.noarch.xbps; do [ -e "$n" ] && set -- "$@" "$n"; done
+    XBPS_TARGET_ARCH="$arch" xbps-rindex -a "$@"
     XBPS_TARGET_ARCH="$arch" xbps-rindex --privkey "$KEY" --sign --signedby "$SIGNED_BY" "$DIR"
 done
 xbps-rindex --privkey "$KEY" --sign-pkg "$DIR"/*.xbps
