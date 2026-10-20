@@ -1,5 +1,5 @@
 diff --git a/config.def.h b/config.def.h
-index cb4cf6b..df4ec8a 100644
+index cb4cf6b..52a47fa 100644
 --- a/config.def.h
 +++ b/config.def.h
 @@ -1,40 +1,63 @@
@@ -101,7 +101,7 @@ index cb4cf6b..df4ec8a 100644
 +static const char *scratchpadcmd[] = { "st", "-t", scratchpadname, "-g", "120x34", NULL };
 +static const char *alacrittycmd[] = { "alacritty", NULL };
 +static const char *sshcmd[]     = { "/usr/local/bin/dmenu-ssh", NULL };
-+static const char *browsercmd[] = { "/bin/sh", "-c", "command -v firefox >/dev/null 2>&1 && exec firefox || exec chromium || exec flatpak run com.google.Chrome", NULL };
++static const char *browsercmd[] = { "/usr/local/bin/abyss-control-center", "browser", NULL }; /* notifies when none is installed */
 +static const char *codecmd[]    = { "code", NULL };
 +static const char *virtcmd[]    = { "virt-manager", NULL };
 +static const char *lockcmd[]    = { "slock", NULL };

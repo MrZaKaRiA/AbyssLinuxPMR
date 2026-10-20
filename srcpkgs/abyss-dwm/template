@@ -4,7 +4,7 @@
 #   Abyss purple theme, status-bar click opens the Abyss menu
 pkgname=abyss-dwm
 version=6.8
-revision=1
+revision=2
 _gitrev=bca7cf2
 wrksrc="dwm-${version}"
 makedepends="libXinerama-devel libXft-devel freetype-devel"
