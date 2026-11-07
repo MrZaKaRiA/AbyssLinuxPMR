@@ -134,3 +134,20 @@ scrollbar slider:hover, scrollbar slider:active { background-color: #a855f7; }
 .view:selected, iconview:selected, treeview.view:selected, list row:selected, placessidebar row:selected {
   -gtk-icon-effect: none;
 }
+
+/* LightDM GTK greeter: keep its user picker and password entry readable.
+ * These IDs are only present in the greeter, so regular GTK apps are unchanged.
+ */
+#login_window #user_combobox {
+  min-width: 22em;
+}
+#login_window .entry {
+  min-width: 22em;
+  min-height: 2.2em;
+  padding: 0.35em 0.7em;
+}
+#login_window .button {
+  min-width: 8em;
+  min-height: 2em;
+  padding: 0.35em 0.8em;
+}
