@@ -1,0 +1,18 @@
+#!/bin/sh
+case "$ACTION" in
+post)
+	for cmd in abyss-apps abyss-control-center abyss-display abyss-display-setup \
+		abyss-installer abyss-keyboard abyss-launcher abyss-power abyss-priv \
+		abyss-session abyss-setup abyss-shortcuts abyss-software abyss-welcome \
+		dmenu-ssh dwm-statusbar; do
+		wrapper="usr/local/bin/$cmd"
+		if grep -q 'managed by abyss-desktop' "$wrapper" 2>/dev/null; then
+			if [ -e "$wrapper.abyss-backup" ]; then
+				mv "$wrapper.abyss-backup" "$wrapper"
+			else
+				rm -f "$wrapper"
+			fi
+		fi
+	done
+	;;
+esac

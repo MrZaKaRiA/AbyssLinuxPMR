@@ -2,7 +2,7 @@
 # Abyss desktop menus and lightweight helpers, updated through the signed PMR.
 pkgname=abyss-desktop
 version=1.0
-revision=2
+revision=3
 depends="abyss-st abyss-dmenu"
 short_desc="Abyss desktop menus, software installer, and hardware setup tools"
 maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
@@ -19,39 +19,3 @@ do_install() {
 	vinstall ${FILESDIR}/rofi-config.rasi 644 usr/share/abyss/rofi config.rasi
 }
 
-# The ISO overlay historically installs Abyss commands under /usr/local/bin.
-# Keep those paths working, while the package-owned executables live in /usr/bin.
-post_install() {
-	mkdir -p /usr/local/bin
-	for cmd in abyss-apps abyss-control-center abyss-display abyss-display-setup \
-		abyss-installer abyss-keyboard abyss-launcher abyss-power abyss-priv \
-		abyss-session abyss-setup abyss-shortcuts abyss-software abyss-welcome \
-		dmenu-ssh dwm-statusbar; do
-		wrapper="/usr/local/bin/$cmd"
-		if [ -e "$wrapper" ] && ! grep -q 'managed by abyss-desktop' "$wrapper"; then
-			[ -e "$wrapper.abyss-backup" ] || cp -p "$wrapper" "$wrapper.abyss-backup"
-		fi
-		cat > "$wrapper" <<EOF
-#!/bin/sh
-# managed by abyss-desktop; keep the historical Abyss command path
-exec /usr/bin/$cmd "\$@"
-EOF
-		chmod 0755 "$wrapper"
-	done
-}
-
-post_remove() {
-	for cmd in abyss-apps abyss-control-center abyss-display abyss-display-setup \
-		abyss-installer abyss-keyboard abyss-launcher abyss-power abyss-priv \
-		abyss-session abyss-setup abyss-shortcuts abyss-software abyss-welcome \
-		dmenu-ssh dwm-statusbar; do
-		wrapper="/usr/local/bin/$cmd"
-		if grep -q 'managed by abyss-desktop' "$wrapper" 2>/dev/null; then
-			if [ -e "$wrapper.abyss-backup" ]; then
-				mv "$wrapper.abyss-backup" "$wrapper"
-			else
-				rm -f "$wrapper"
-			fi
-		fi
-	done
-}
