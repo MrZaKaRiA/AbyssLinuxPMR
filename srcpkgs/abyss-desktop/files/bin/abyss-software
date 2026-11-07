@@ -71,17 +71,25 @@ EOF
 install_artcraft() {
     case "$(uname -m)" in x86_64) arch=x86_64 ;; aarch64) arch=aarch64 ;; *) note 'ArtCraft unavailable' "Unsupported architecture: $(uname -m)"; return 1 ;; esac
     api=https://api.github.com/repos/storytold/craft-launcher/releases/latest
-    url=$(curl -fsSL --proto '=https' --tlsv1.2 "$api" | awk -v suffix="linux-$arch.AppImage" '/"browser_download_url":/ { u=$0; sub(/^.*"browser_download_url":[[:space:]]*"/, "", u); sub(/"[,]?$/, "", u); if (u ~ suffix "$" && u ~ /^https:\/\/github\.com\/storytold\/craft-launcher\/releases\/download\//) { print u; exit } }')
+    release=$(curl -fsSL --proto '=https' --tlsv1.2 "$api") || { note 'ArtCraft download unavailable' 'Could not read the latest official release.'; return 1; }
+    tag=$(printf '%s\n' "$release" | awk -F '"' '/"tag_name":/ { print $4; exit }')
+    url=$(printf '%s\n' "$release" | awk -v suffix="linux-$arch.AppImage" '/"browser_download_url":/ { u=$0; sub(/^.*"browser_download_url":[[:space:]]*"/, "", u); sub(/"[,]?$/, "", u); if (u ~ suffix "$" && u ~ /^https:\/\/github\.com\/storytold\/craft-launcher\/releases\/download\//) { print u; exit } }')
+    case "$tag" in *[!A-Za-z0-9._-]*|'') tag= ;; esac
+    [ -n "$tag" ] || { note 'ArtCraft download unavailable' 'Could not determine the latest official release tag.'; return 1; }
     [ -n "$url" ] || { note 'ArtCraft download unavailable' 'Could not find the latest official AppImage release.'; return 1; }
     file=${url##*/}
-    sums=https://github.com/storytold/craft-launcher/releases/latest/download/SHA256SUMS.txt
+    # Pin the checksum file to the same release as the API asset; the moving
+    # /latest/download endpoint can change between the two requests.
+    sums="https://github.com/storytold/craft-launcher/releases/download/$tag/SHA256SUMS.txt"
     tmp=$(mktemp -d "${TMPDIR:-/tmp}/abyss-artcraft.XXXXXX") || return 1
     if ! curl -fL --proto '=https' --tlsv1.2 "$url" -o "$tmp/$file" || ! curl -fL --proto '=https' --tlsv1.2 "$sums" -o "$tmp/SHA256SUMS.txt"; then
         rm -rf "$tmp"; note 'Download failed' 'Could not download ArtCraft and its checksum.'; return 1
     fi
-    (cd "$tmp" && grep -F "  $file" SHA256SUMS.txt | sha256sum -c -) >/dev/null 2>&1 || {
+    expected=$(awk -v f="$file" '{ name=$2; sub(/^\*/, "", name); if (name == f) { print $1; exit } }' "$tmp/SHA256SUMS.txt")
+    actual=$(sha256sum "$tmp/$file" | awk '{print $1}')
+    if ! printf '%s\n' "$expected" | grep -Eq '^[[:xdigit:]]{64}$' || [ "$actual" != "$expected" ]; then
         rm -rf "$tmp"; note 'Checksum failed' 'The ArtCraft download did not match its published checksum.'; return 1;
-    }
+    fi
     mkdir -p "$HOME/.local/opt" "$HOME/.local/bin" "$HOME/.local/share/applications"
     install -m 0755 "$tmp/$file" "$HOME/.local/opt/artcraft-launcher.AppImage"
     ln -sf "$HOME/.local/opt/artcraft-launcher.AppImage" "$HOME/.local/bin/artcraft-launcher"
