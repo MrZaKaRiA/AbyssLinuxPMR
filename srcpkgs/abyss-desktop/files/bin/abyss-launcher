@@ -21,8 +21,9 @@ if command -v rofi >/dev/null 2>&1; then
 
     # Rofi shows a GUI error dialog when a config fails to parse, even when
     # called with -dump-config. The older Abyss default had a stray `};` at
-    # the line that Rofi reports, so detect that typo before invoking Rofi.
-    if [ -r "$user_config" ] && grep -Eq '^[[:space:]]*};[[:space:]]*$' "$user_config"; then
+    # the line that Rofi reports. It may include a stray quote as in `}";`,
+    # so detect both forms before invoking Rofi.
+    if [ -r "$user_config" ] && grep -Eq '^[[:space:]]*}"?;[[:space:]]*$' "$user_config"; then
         if [ -r "$system_config" ]; then
             exec rofi -config "$system_config" -show "$mode" ${dpi:+-dpi "$dpi"}
         fi
