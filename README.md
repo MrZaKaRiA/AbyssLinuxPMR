@@ -1,6 +1,6 @@
 # Abyss Linux PMR — Package Manager Repository
 
-The **Abyss Linux PMR** is a signed [XBPS](https://github.com/void-linux/xbps) repository that ships the Abyss builds of the [suckless](https://suckless.org) tools for **x86_64** and **aarch64**. It sits next to the official Void Linux repositories. When suckless releases a new dwm or st, or Abyss improves a patch, every Abyss system picks it up with a normal `xbps-install -Su`. You don't have to reinstall from a new ISO.
+The **Abyss Linux PMR** is a signed [XBPS](https://github.com/void-linux/xbps) repository that ships Abyss builds of the [suckless](https://suckless.org) tools and the small desktop helpers for **x86_64** and **aarch64**. It sits next to the official Void Linux repositories. When Abyss updates its desktop tools, existing systems receive them with a normal `xbps-install -Su`. You don't have to reinstall from a new ISO.
 
 ```
 https://mrzakaria.github.io/AbyssLinuxPMR/current
@@ -8,15 +8,16 @@ https://mrzakaria.github.io/AbyssLinuxPMR/current
 
 | Package | Upstream | Abyss build | What it is |
 |---|---|---|---|
-| `abyss-dwm` | dwm 6.8 + git `bca7cf2` | `6.8_3` | Dynamic tiling window manager, the Abyss desktop |
+| `abyss-dwm` | dwm 6.8 + git `bca7cf2` | `6.8_4` | Dynamic tiling window manager, the Abyss desktop |
 | `abyss-st` | st 0.9.3 + git `fdaadd5` | `0.9.3_1` | Simple terminal |
 | `abyss-dmenu` | dmenu 5.4 + git `8627d0c` | `5.4_1` | Keyboard-driven menu and launcher |
 | `abyss-slock` | slock 1.7 + git `65cb721` | `1.7_1` | Screen locker |
 | `abyss-tabbed` | tabbed 0.9 + git `e65146d` | `0.9_1` | Tabs for XEmbed applications |
 | `abyss-wmname` | wmname 0.1 + git `1114a83` | `0.1_1` | Sets the WM name (`LG3D`) so Java GUIs render under dwm |
 | `abyss-theme` | Abyss | `1.0_2` | Dark GTK 3 theme and icons; greeter-specific rules widen the LightDM user and password fields |
+| `abyss-desktop` | Abyss | `1.0_1` | Control center, searchable software installer, display setup, status bar, and Rofi config recovery |
 
-Each suckless package conflicts with Void's stock package of the same tool (`dwm`, `st`, …), so only one build is installed at a time. `abyss-dwm` depends on `abyss-theme`, so the desktop look arrives with the window manager.
+Each suckless package conflicts with Void's stock package of the same tool (`dwm`, `st`, …), so only one build is installed at a time. `abyss-dwm` depends on `abyss-theme` and `abyss-desktop`, so both visual and menu updates arrive with the window manager.
 
 ---
 

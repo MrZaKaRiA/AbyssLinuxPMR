@@ -1,0 +1,20 @@
+# Template file for 'abyss-desktop'
+# Abyss desktop menus and lightweight helpers, updated through the signed PMR.
+pkgname=abyss-desktop
+version=1.0
+revision=1
+depends="abyss-st abyss-dmenu"
+short_desc="Abyss desktop menus, software installer, and hardware setup tools"
+maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
+license="MIT"
+homepage="https://github.com/MrZaKaRiA/AbyssLinux"
+do_install() {
+	vmkdir usr/local/bin
+	for f in ${FILESDIR}/bin/*; do
+		[ -f "$f" ] || continue
+		vinstall "$f" 755 usr/local/bin
+	done
+
+	vmkdir usr/share/abyss/rofi
+	vinstall ${FILESDIR}/rofi-config.rasi 644 usr/share/abyss/rofi config.rasi
+}
