@@ -17,8 +17,19 @@ dpi=$(xrdb -query 2>/dev/null | awk '$1 == "Xft.dpi:" {print int($2); exit}')
 
 if command -v rofi >/dev/null 2>&1; then
     user_config="${XDG_CONFIG_HOME:-$HOME/.config}/rofi/config.rasi"
+    system_config=/usr/share/abyss/rofi/config.rasi
+
+    # Rofi shows a GUI error dialog when a config fails to parse, even when
+    # called with -dump-config. The older Abyss default had a stray `};` at
+    # the line that Rofi reports, so detect that typo before invoking Rofi.
+    if [ -r "$user_config" ] && grep -Eq '^[[:space:]]*};[[:space:]]*$' "$user_config"; then
+        if [ -r "$system_config" ]; then
+            exec rofi -config "$system_config" -show "$mode" ${dpi:+-dpi "$dpi"}
+        fi
+        exec rofi -no-config -show "$mode" ${dpi:+-dpi "$dpi"}
+    fi
+
     if [ -r "$user_config" ] && ! rofi -config "$user_config" -dump-config >/dev/null 2>&1; then
-        system_config=/usr/share/abyss/rofi/config.rasi
         if [ -r "$system_config" ]; then
             exec rofi -config "$system_config" -show "$mode" ${dpi:+-dpi "$dpi"}
         fi
