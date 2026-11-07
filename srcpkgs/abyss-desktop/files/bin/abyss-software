@@ -6,7 +6,7 @@ NB='#0d0b18' NF='#f3e8ff' SB='#a855f7' SF='#090514'
 FONT='JetBrainsMono Nerd Font:size=10'
 
 has() { command -v "$1" >/dev/null 2>&1; }
-choose() { dmenu -i -c -l 18 -fn "$FONT" -nb "$NB" -nf "$NF" -sb "$SB" -sf "$SF" "$@"; }
+choose() { dmenu -i -c -l 13 -fn "$FONT" -nb "$NB" -nf "$NF" -sb "$SB" -sf "$SF" "$@"; }
 term() { setsid -f st -t "$1" -e sh -c "$2; echo; printf 'Press Enter to close '; read _" >/dev/null 2>&1; }
 priv() { abyss-priv "$@"; }
 note() {
@@ -30,10 +30,11 @@ search_packages() {
     query=$(printf '' | choose -p 'Search Void packages') || return
     [ -n "$query" ] || return
     results=$(xbps-query -Rs "$query" 2>/dev/null | awk '
-        { line=$0; sub(/^\[[^]]+\][[:space:]]*/, "", line); $0=line; pkg=$1; sub(/-[0-9].*$/, "", pkg); $1=""; sub(/^[[:space:]]+/, ""); if (pkg != "") printf "%s\t%s\n", pkg, $0 }
+        { line=$0; sub(/^\[[^]]+\][[:space:]]*/, "", line); $0=line; pkg=$1; sub(/-[0-9].*$/, "", pkg); $1=""; sub(/^[[:space:]]+/, ""); if (pkg != "") printf "%s — %s\n", pkg, $0 }
     ' | sort -u)
     [ -n "$results" ] || { note 'No packages found' "$query"; return; }
-    selected=$(printf '%s\n' "$results" | choose -p 'Select package' | cut -f1)
+    choice=$(printf '%s\n' "$results" | choose -p 'Void packages (type to filter)')
+    selected=$(printf '%s\n' "$choice" | sed 's/ —.*//')
     [ -n "$selected" ] || return
     if [ "$(printf 'Install %s\nCancel\n' "$selected" | choose -p 'Confirm')" = "Install $selected" ]; then
         install_packages "$selected"
@@ -157,25 +158,25 @@ open_official_page() {
 
 catalog() {
     cat <<'EOF'
-Firefox — browser	pkg:firefox
-Google Chrome — official Linux download	chrome
-Chromium — browser	pkg:chromium
-Virtual machines — QEMU and virt-manager	pkg:qemu libvirt virt-manager bridge-utils
+Firefox (Void package)	pkg:firefox
+Google Chrome (official download)	chrome
+Chromium (Void package)	pkg:chromium
+Virtual machines (QEMU + virt-manager)	pkg:qemu libvirt virt-manager bridge-utils
 Docker Engine	pkg:docker docker-compose docker-buildx
-VLC — media player	pkg:vlc
-External drives and file browser	pkg:udisks2 gvfs thunar
-Visual Studio Code — latest official archive	vscode
-ArtCraft Launcher — latest official release	artcraft
-Ollama — official latest installer	ollama
-Claude Code — latest official CLI	claude-code
-OpenCode — latest official CLI	opencode
-Google Antigravity — official Linux download page	antigravity
-Cursor — install latest official AppImage	cursor
-ChatGPT — open the web app	chatgpt
-Audio support — PipeWire and mixer	pkg:pipewire pipewire-pulse wireplumber pavucontrol
+VLC media player	pkg:vlc
+External storage (udisks + GVFS)	pkg:udisks2 gvfs thunar
+Visual Studio Code (latest stable)	vscode
+ArtCraft Launcher	artcraft
+Ollama (official installer)	ollama
+Claude Code CLI	claude-code
+OpenCode CLI	opencode
+Google Antigravity (download page)	antigravity
+Cursor (latest AppImage)	cursor
+ChatGPT (web app)	chatgpt
+Audio support (PipeWire + mixer)	pkg:pipewire pipewire-pulse wireplumber pavucontrol
 Bluetooth support	pkg:bluez
 Laptop brightness controls	pkg:brightnessctl
-Search all Void packages	search
+Search Void packages	search
 EOF
 }
 
@@ -189,8 +190,8 @@ if [ "${1:-}" = --install ] && [ -n "${2:-}" ]; then
 fi
 
 while :; do
-    selection=$(catalog | choose -p 'Install software (Void + official downloads)') || exit 0
-    action=$(printf '%s\n' "$selection" | awk -F '\t' '{print $2}')
+    selection=$(catalog | cut -f1 | choose -p 'Software (type to filter)') || exit 0
+    action=$(catalog | awk -F '\t' -v label="$selection" '$1 == label { print $2; exit }')
     case "$action" in
         pkg:*) install_packages "${action#pkg:}" ;;
         chrome) open_official_page 'https://www.google.com/chrome/' ;;
