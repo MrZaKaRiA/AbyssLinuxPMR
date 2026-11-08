@@ -168,7 +168,7 @@ EOF
 
 menu_tree() {
     swap_label=$(abyss-keyboard --swap-label 2>/dev/null || printf 'Swap Left Alt ↔ Super (Win/Cmd)')
-    menu_tree_raw | sed "s/__KEYBOARD_SWAP_LABEL__/$swap_label/g"
+    menu_tree_raw | sed "s|__KEYBOARD_SWAP_LABEL__|$swap_label|g"
 }
 
 # Flatten the tree for dmenu: "Settings › Keyboard › Test what keys send<TAB>kbd-test"
