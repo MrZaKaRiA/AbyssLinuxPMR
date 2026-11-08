@@ -116,6 +116,7 @@ menu_tree_raw() {
     cat <<'EOF'
   Terminal	term
   Files	files
+  Images	images
   Web browser	browser
   Take screenshot	screenshot
   Select screenshot area	screenshot-area
@@ -153,7 +154,7 @@ EOF
 		󰘳  __KEYBOARD_SWAP_LABEL__	kbd-swap
 		󰌓  Test what keys send	kbd-test
 		󰋖  Current layout and modifiers	kbd-status
-		󰌌  Active keyboard shortcuts	shortcuts
+		󰌌  View and edit shortcuts	shortcuts
   System
 	󰄨  System monitor	monitor
 	  About this computer	info
@@ -225,6 +226,15 @@ act() {
         alacritty)    if has alacritty; then first "alacritty"
                       else notify "Alacritty is not installed" "Opening the default terminal instead."; act term; fi ;;
         files)        first "thunar" "pcmanfm" "nautilus" || act lf ;;
+        images)       if has nsxiv; then
+                          pictures="$HOME/Pictures"
+                          if has xdg-user-dir; then
+                              configured=$(xdg-user-dir PICTURES 2>/dev/null)
+                              [ -n "$configured" ] && [ "$configured" != "$HOME" ] && pictures=$configured
+                          fi
+                          mkdir -p "$pictures" || { notify "Images" "Could not open the Pictures folder."; return 1; }
+                          setsid -f nsxiv -t -r "$pictures" >/dev/null 2>&1
+                      else notify "Image viewer unavailable" "Update Abyss or install nsxiv from the Void repository."; fi ;;
         lf)           if has lf; then term "Files" lf; else term "Files" sh -c 'ls -la; exec bash'; fi ;;
         vim)          if has vim; then term "Editor" vim; else first "code"; fi ;;
         browser)      if has firefox || has chromium || has google-chrome-stable || has google-chrome || has brave-browser || has vivaldi; then
@@ -286,7 +296,7 @@ act() {
         services)     term_hold "Services" 'sv status /var/service/* 2>/dev/null | sed "s|/var/service/||"' ;;
         power-diag)   term_hold "Power diagnostics" 'abyss-power diagnose' ;;
         ssh)          first "dmenu-ssh" ;;
-        shortcuts)    term "Abyss Shortcuts" abyss-shortcuts ;;
+        shortcuts)    setsid -f abyss-shortcut-editor >/dev/null 2>&1 ;;
 
         lock)         first "slock" ;;
         suspend)      power suspend ;;

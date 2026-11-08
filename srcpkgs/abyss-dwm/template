@@ -5,7 +5,7 @@
 #   click opens the Abyss menu
 pkgname=abyss-dwm
 version=6.8
-revision=6
+revision=7
 _gitrev=bca7cf2
 wrksrc="dwm-${version}"
 makedepends="libXinerama-devel libXft-devel freetype-devel"
@@ -19,6 +19,10 @@ homepage="https://github.com/MrZaKaRiA/AbyssLinux"
 distfiles="https://dl.suckless.org/dwm/dwm-${version}.tar.gz"
 checksum=bcf540589ad174d4073f4efa658828411e2f5ba63196cfaf6b71363700f590b7
 conflicts="dwm>=0"
+
+post_patch() {
+	cp ${FILESDIR}/abyss-shortcuts.h abyss-shortcuts.h
+}
 
 do_build() {
 	vsed -e "/CFLAGS/s|\${CPPFLAGS}|& $CFLAGS|g" -i config.mk
