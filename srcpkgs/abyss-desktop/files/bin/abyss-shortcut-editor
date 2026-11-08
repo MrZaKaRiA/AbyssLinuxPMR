@@ -150,6 +150,21 @@ add_app() {
 restore_all() {
     choice=$(printf '%s\n' 'Cancel' 'Restore defaults' | choose -p 'Remove all custom shortcuts?') || return
     [ "$choice" = 'Restore defaults' ] || return
+    current=$(bindings) || return
+    # A freed default may have since been grabbed by another application.
+    # Keys already owned by dwm can be safely released and re-grabbed by dwm.
+    while IFS="$(printf '\t')" read -r type originalmod originalkey currentmod currentkey label; do
+        [ "$type" = B ] || continue
+        owned=$(printf '%s\n' "$current" | awk -F '\t' -v m="$originalmod" -v k="$originalkey" '
+            ($1 == "B" && $4 == m && $5 == k) || ($1 == "A" && $3 == m && $4 == k) {print "yes"; exit}
+        ')
+        if [ -z "$owned" ] && ! "$helper" --probe "$originalmod" "$originalkey" >/dev/null 2>&1; then
+            message "The default combination for $label is unavailable. Close the program using it and try again." 'Could not restore defaults'
+            return
+        fi
+    done <<EOF
+$current
+EOF
     mkdir -p "$dir" || return
     old=$(mktemp "$dir/.old-shortcuts.XXXXXX") || return
     next=$(mktemp "$dir/.new-shortcuts.XXXXXX") || { rm -f "$old"; return; }
