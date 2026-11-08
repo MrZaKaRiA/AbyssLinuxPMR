@@ -4,7 +4,7 @@ pkgname=abyss-desktop
 version=1.0
 revision=16
 makedepends="libX11-devel"
-depends="abyss-st abyss-dmenu"
+depends="abyss-st abyss-dmenu nsxiv"
 short_desc="Abyss desktop menus, software installer, and hardware setup tools"
 maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
 license="MIT"
@@ -19,6 +19,7 @@ do_install() {
 		[ -f "$f" ] || continue
 		vinstall "$f" 755 usr/bin
 	done
+	vinstall ${FILESDIR}/abyss-images.desktop 644 usr/share/applications
 
 	vmkdir usr/share/abyss/rofi
 	vinstall ${FILESDIR}/rofi-config.rasi 644 usr/share/abyss/rofi config.rasi

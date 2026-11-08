@@ -28,6 +28,42 @@ wm_pid=$!
 for _ in $(seq 1 100); do abyss-key-capture --list > "$testdir/bindings" 2>/dev/null && break; sleep .1; done
 grep -F "$(printf 'B\t64\tReturn\t64\tReturn\tOpen terminal')" "$testdir/bindings" >/dev/null
 
+# Verify Void's image viewer and both forms of the img command in X11.
+xbps-query -p pkgver nsxiv
+test -r /usr/share/applications/nsxiv.desktop
+test -r /usr/share/applications/abyss-images.desktop
+mkdir -p "$testdir/Pictures" "$testdir/bin"
+python3 - "$testdir/Pictures/test.png" <<'PY'
+import struct, sys, zlib
+def chunk(kind, data):
+    return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data) & 0xffffffff)
+image = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0))
+image += chunk(b'IDAT', zlib.compress(b'\x00\xff\x00\x00')) + chunk(b'IEND', b'')
+with open(sys.argv[1], 'wb') as output: output.write(image)
+PY
+printf '#!/bin/sh\nprintf "%%s\\n" "%s"\n' "$testdir/Pictures" > "$testdir/bin/xdg-user-dir"
+chmod 755 "$testdir/bin/xdg-user-dir"
+export PATH="$testdir/bin:$PATH"
+wait_image() {
+    for _ in $(seq 1 100); do
+        if xdotool search --onlyvisible --class '^Nsxiv$' >/dev/null 2>&1; then return; fi
+        sleep .1
+    done
+    echo 'Timed out waiting for nsxiv' >&2; return 1
+}
+img "$testdir/Pictures/test.png" > "$testdir/image.log" 2>&1 &
+viewer_pid=$!
+wait_image
+xdotool search --onlyvisible --class '^Nsxiv$' | head -1 | xargs xdotool windowclose
+wait "$viewer_pid" || true
+sleep .5
+img
+wait_image
+xdotool search --onlyvisible --class '^Nsxiv$' | head -1 | xargs xdotool windowclose
+sleep .5
+abyss-apps --list | awk -F '\t' '$2 == "exec:abyss-control-center images" {found=1} END {exit !found}'
+echo 'nsxiv and img launcher: PASS'
+
 if abyss-key-capture --probe 64 Return; then
     echo 'Expected Super+Return to be reported as taken' >&2; exit 1
 else
