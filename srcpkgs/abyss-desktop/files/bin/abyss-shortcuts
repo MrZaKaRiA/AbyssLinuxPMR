@@ -42,3 +42,9 @@ printf '%s\n' \
     'Super = Windows / Command key. Left Alt remains Alt by default.' \
     'Super+Escape → Settings → Display for monitors, refresh rate, OLED blanking.' \
     'Super+Escape → Install software to add apps from Void or official downloads.'
+
+# Keep the terminal open for both the menu action and the Super+F1 shortcut.
+if [ -t 0 ]; then
+    printf '\nPress Enter to close '
+    IFS= read -r _
+fi
