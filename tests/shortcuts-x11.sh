@@ -88,11 +88,20 @@ select_menu 'Abyss test app'
 capture_shortcut F3
 accept_message
 finish_editor
+open_editor
+select_menu 'Application shortcuts'
+select_menu 'Abyss test app'
+select_menu 'Change shortcut'
+capture_shortcut F4
+accept_message
+finish_editor
+abyss-key-capture --probe 64 F3
+abyss-key-capture --list | awk -F '\t' '$1 == "A" && $3 == 64 && $4 == "F4" && $5 ~ /Abyss test app/ { found=1 } END { exit !found }'
 kill "$wm_pid"; wait "$wm_pid" 2>/dev/null || true
 dwm >> "$testdir/dwm.log" 2>&1 & wm_pid=$!
 sleep 1
 abyss-key-capture --list | grep -F "$(printf 'B\t64\tReturn\t64\tF2\tOpen terminal')" >/dev/null
-xdotool key --clearmodifiers Super_L+F3
+xdotool key --clearmodifiers Super_L+F4
 for _ in $(seq 1 50); do [ -e "$testdir/app-fired" ] && break; sleep .1; done
 test -e "$testdir/app-fired"
 
@@ -106,7 +115,15 @@ accept_message
 finish_editor
 cmp "$testdir/before-conflict" "$XDG_CONFIG_HOME/abyss/shortcuts.conf"
 
-# Restore defaults and ensure the original key is grabbed again.
+# Disable a built-in binding, then restore defaults and its original key.
+open_editor
+select_menu 'System shortcuts'
+select_menu 'Open terminal'
+select_menu 'Disable shortcut'
+accept_message
+finish_editor
+abyss-key-capture --list | grep -F "$(printf 'B\t64\tReturn\t0\t-\tOpen terminal')" >/dev/null
+abyss-key-capture --probe 64 F2
 open_editor
 select_menu 'Restore all defaults'
 select_menu 'Restore defaults'
