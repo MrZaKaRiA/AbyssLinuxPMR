@@ -233,7 +233,7 @@ act() {
                               [ -n "$configured" ] && [ "$configured" != "$HOME" ] && pictures=$configured
                           fi
                           mkdir -p "$pictures" || { notify "Images" "Could not open the Pictures folder."; return 1; }
-                          setsid -f sh -c 'nsxiv -t -r "$1" || printf "No images could be opened in %s\n" "$1" | dmenu -i -c -l 3 -p "Images"' sh "$pictures" >/dev/null 2>&1
+                          setsid -f nsxiv -t -r "$pictures" >/dev/null 2>&1
                       else notify "Image viewer unavailable" "Update Abyss or install nsxiv from the Void repository."; fi ;;
         lf)           if has lf; then term "Files" lf; else term "Files" sh -c 'ls -la; exec bash'; fi ;;
         vim)          if has vim; then term "Editor" vim; else first "code"; fi ;;
