@@ -71,6 +71,7 @@ capture_shortcut F2
 accept_message
 finish_editor
 abyss-key-capture --list | grep -F "$(printf 'B\t64\tReturn\t64\tF2\tOpen terminal')" >/dev/null
+abyss-shortcuts </dev/null | grep -F 'Super+F2' >/dev/null
 abyss-key-capture --probe 64 Return
 if abyss-key-capture --probe 64 F2; then echo 'Changed key was not grabbed' >&2; exit 1; else [ "$?" -eq 3 ]; fi
 
@@ -97,6 +98,7 @@ accept_message
 finish_editor
 abyss-key-capture --probe 64 F3
 abyss-key-capture --list | awk -F '\t' '$1 == "A" && $3 == 64 && $4 == "F4" && $5 ~ /Abyss test app/ { found=1 } END { exit !found }'
+abyss-shortcuts </dev/null | grep -F 'Launch Abyss test app' >/dev/null
 kill "$wm_pid"; wait "$wm_pid" 2>/dev/null || true
 dwm >> "$testdir/dwm.log" 2>&1 & wm_pid=$!
 sleep 1

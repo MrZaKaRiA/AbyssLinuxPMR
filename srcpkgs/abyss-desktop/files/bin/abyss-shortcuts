@@ -1,4 +1,28 @@
 #!/bin/sh
+pause_if_terminal() {
+    if [ -t 0 ]; then
+        printf '\nPress Enter to close '
+        IFS= read -r _
+    fi
+}
+
+# Prefer the running window manager's bindings, including user changes.
+if command -v abyss-key-capture >/dev/null 2>&1 && rows=$(abyss-key-capture --list 2>/dev/null) && [ -n "$rows" ]; then
+    printf '%s\n\n' 'Abyss Linux — current keyboard shortcuts'
+    printf '%s\n' "$rows" | awk -F '\t' '
+        function chord(m,k, r) {
+            if (k == "-") return "Disabled"
+            r=""; if (int(m/64)%2) r=r "Super+"; if (int(m/8)%2) r=r "Alt+";
+            if (int(m/4)%2) r=r "Ctrl+"; if (int(m)%2) r=r "Shift+"; return r k
+        }
+        $1 == "B" { printf "%-24s %s (%s)\n", chord($4,$5), $6, chord($2,$3) }
+        $1 == "A" { printf "%-24s Launch %s\n", chord($3,$4), $5 }
+    '
+    printf '\n%s\n' 'Use Settings → Keyboard → View and edit shortcuts to make changes.'
+    pause_if_terminal
+    exit 0
+fi
+
 printf '%s\n' \
     'Abyss Linux — active dwm keyboard shortcuts' \
     '' \
@@ -43,8 +67,4 @@ printf '%s\n' \
     'Super+Escape → Settings → Display for monitors, refresh rate, OLED blanking.' \
     'Super+Escape → Install software to add apps from Void or official downloads.'
 
-# Keep the terminal open for both the menu action and the Super+F1 shortcut.
-if [ -t 0 ]; then
-    printf '\nPress Enter to close '
-    IFS= read -r _
-fi
+pause_if_terminal

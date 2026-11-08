@@ -8,6 +8,7 @@ import tempfile
 import unittest
 
 EDITOR = Path(os.environ.get("ABYSS_EDITOR", Path(__file__).resolve().parents[1] / "custom-overlay/usr/local/bin/abyss-shortcut-editor"))
+SHORTCUT_LIST = Path(os.environ.get("ABYSS_SHORTCUT_LIST", Path(__file__).resolve().parents[1] / "custom-overlay/usr/local/bin/abyss-shortcuts"))
 
 DMENU = r'''#!/usr/bin/env python3
 import json, os, sys
@@ -59,6 +60,24 @@ APPS = "#!/bin/sh\nprintf 'Demo browser\\t%s\\n' 'exec:/usr/bin/true'\n"
 
 
 class EditorTest(unittest.TestCase):
+    def test_text_list_reads_the_running_bindings(self):
+        with tempfile.TemporaryDirectory(prefix="abyss-shortcut-list-test-") as tmp:
+            root = Path(tmp)
+            bindir = root / "bin"
+            bindir.mkdir()
+            helper = bindir / "abyss-key-capture"
+            helper.write_text(HELPER)
+            helper.chmod(0o755)
+            config = root / "config/abyss/shortcuts.conf"
+            config.parent.mkdir(parents=True)
+            config.write_text("B\t64\tReturn\t64\tF2\nA\tapp-1\t64\tF3\tDemo\texec:demo\n")
+            env = os.environ.copy()
+            env.update(PATH=f"{bindir}:/usr/bin:/bin", XDG_CONFIG_HOME=str(root / "config"))
+            result = subprocess.run([str(SHORTCUT_LIST)], env=env, stdin=subprocess.DEVNULL, text=True, capture_output=True, timeout=5)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Super+F2", result.stdout)
+            self.assertIn("Launch Demo", result.stdout)
+
     def run_editor(self, queue, capture="64 F2", probe="0", reject="", initial=""):
         with tempfile.TemporaryDirectory(prefix="abyss-editor-test-") as tmp:
             root = Path(tmp)
