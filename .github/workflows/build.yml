@@ -45,6 +45,20 @@ jobs:
       - name: Build packages
         run: bash common/build.sh
 
+      - name: Test shortcut editor and real X11 bindings
+        run: |
+          xbps-install -Sy xorg-server-xvfb xdotool dejavu-fonts-ttf python3 gcc pkg-config libX11-devel
+          ABYSS_EDITOR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-shortcut-editor" python3 tests/test_shortcut_editor.py
+          cc -std=c99 -Wall -Wextra -Wno-unused-function tests/shortcut-config.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-shortcut-config-test
+          /tmp/abyss-shortcut-config-test
+          mkdir -p /usr/local/bin
+          printf '#!/bin/sh\nold shortcut script\n' > /usr/local/bin/abyss-shortcuts
+          ln -s abyss-shortcuts /usr/local/bin/abyss-welcome
+          xbps-install -y -R /tmp/void-packages/hostdir/binpkgs abyss-dwm
+          grep -Fx 'exec /usr/bin/abyss-shortcuts "$@"' /usr/local/bin/abyss-shortcuts
+          grep -Fx 'exec /usr/bin/abyss-welcome "$@"' /usr/local/bin/abyss-welcome
+          tests/shortcuts-x11.sh
+
       - name: Sign repository
         if: github.event_name != 'pull_request'
         env:
