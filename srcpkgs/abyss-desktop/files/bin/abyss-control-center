@@ -106,7 +106,7 @@ header() {
 # Menu tree (TAB-indented submenus, "Label<TAB>action",
 # an empty line is a separator). Labels use Nerd Font glyphs.
 # ------------------------------------------------------------------------------
-menu_tree() {
+menu_tree_raw() {
     header
     echo
     # Live ISO only: the installer goes first
@@ -144,9 +144,10 @@ EOF
 		  Text size: extra large	dpi-192
 	󰌌  Keyboard
 		󰌌  First-run setup / keyboard layout	setup
-		󰘳  Super key: swap with Left Alt	kbd-swap
+		󰘳  __KEYBOARD_SWAP_LABEL__	kbd-swap
 		󰌓  Test what keys send	kbd-test
 		󰋖  Current layout and modifiers	kbd-status
+		󰌌  Active keyboard shortcuts	shortcuts
   System
 	󰄨  System monitor	monitor
 	  About this computer	info
@@ -154,7 +155,6 @@ EOF
 	󰋊  Disks and free space	disks
 	  Running services	services
 	  Power diagnostics	power-diag
-	󰌌  Keyboard shortcuts	shortcuts
 
   Session
 	  Lock screen	lock
@@ -164,6 +164,11 @@ EOF
 	󰜉  Restart	reboot
 	  Shut down	poweroff
 EOF
+}
+
+menu_tree() {
+    swap_label=$(abyss-keyboard --swap-label 2>/dev/null || printf 'Swap Left Alt ↔ Super (Win/Cmd)')
+    menu_tree_raw | sed "s/__KEYBOARD_SWAP_LABEL__/$swap_label/g"
 }
 
 # Flatten the tree for dmenu: "Settings › Keyboard › Test what keys send<TAB>kbd-test"
