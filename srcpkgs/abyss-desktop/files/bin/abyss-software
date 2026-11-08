@@ -176,6 +176,7 @@ ChatGPT (web app)	chatgpt
 Audio support (PipeWire + mixer)	pkg:pipewire pipewire-pulse wireplumber pavucontrol
 Bluetooth support	pkg:bluez
 Laptop brightness controls	pkg:brightnessctl
+Screenshot capture (optional)	pkg:maim
 Search Void packages	search
 EOF
 }

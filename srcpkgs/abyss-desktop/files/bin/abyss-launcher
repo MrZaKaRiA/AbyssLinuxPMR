@@ -39,5 +39,44 @@ if command -v rofi >/dev/null 2>&1; then
     exec rofi -show "$mode" ${dpi:+-dpi "$dpi"}
 fi
 
+if [ "$mode" = drun ]; then
+    rows=$(abyss-apps --list 2>/dev/null)
+    if [ -z "$rows" ]; then
+        command -v notify-send >/dev/null 2>&1 && notify-send -a Abyss 'Applications' 'No launchable desktop applications are installed yet.'
+        exit 0
+    fi
+    selected=$(printf '%s\n' "$rows" | cut -f1 | dmenu -i -c -l 15 \
+        -fn "JetBrainsMono Nerd Font:size=10" -nb "#0d0b18" -nf "#f3e8ff" \
+        -sb "#a855f7" -sf "#090514" -p "Applications") || exit 0
+    [ -n "$selected" ] || exit 0
+    action=$(printf '%s\n' "$rows" | awk -F '\t' -v selected="$selected" '$1 == selected {sub(/^[^\t]*\t/, ""); print; exit}')
+    case "$action" in
+        exec:*)
+            setsid -f sh -c "${action#exec:}" >/dev/null 2>&1
+            ;;
+        term-exec:*)
+            if command -v st >/dev/null 2>&1; then
+                setsid -f st -e sh -c "${action#term-exec:}" >/dev/null 2>&1
+            else
+                command -v notify-send >/dev/null 2>&1 && notify-send -a Abyss 'Applications' 'This application needs a terminal, but st is not installed.'
+                exit 1
+            fi
+            ;;
+        *)
+            command -v notify-send >/dev/null 2>&1 && notify-send -a Abyss 'Applications' 'Could not read this application launch command.'
+            exit 1
+            ;;
+    esac
+    exit $?
+fi
+
+if [ "$mode" = window ]; then
+    if command -v wmctrl >/dev/null 2>&1; then
+        exec wmctrl -a "$(wmctrl -l | dmenu -i -c -l 12 -p "Windows" | awk '{$1=$2=$3=""; sub(/^ +/, ""); print}')"
+    fi
+    command -v notify-send >/dev/null 2>&1 && notify-send -a Abyss 'Window switcher' 'Install wmctrl to switch windows by name.'
+    exit 1
+fi
+
 exec dmenu_run -i -c -l 15 -fn "JetBrainsMono Nerd Font:size=10" \
     -nb "#0d0b18" -nf "#f3e8ff" -sb "#a855f7" -sf "#090514" -p "Run"

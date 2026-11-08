@@ -5,7 +5,7 @@
 #   click opens the Abyss menu
 pkgname=abyss-dwm
 version=6.8
-revision=4
+revision=6
 _gitrev=bca7cf2
 wrksrc="dwm-${version}"
 makedepends="libXinerama-devel libXft-devel freetype-devel"

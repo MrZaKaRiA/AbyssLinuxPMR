@@ -6,12 +6,14 @@ printf '%s\n' \
     'Super+Escape       Open Abyss menu' \
     'Super+grave        Toggle scratchpad terminal' \
     'Super+F1           Show this page' \
-    'Super+Alt+Return   Open Alacritty (if installed)' \
+    'Super+Alt+Return   Open Alacritty, or st if Alacritty is absent' \
+    'Print              Save a full-screen screenshot' \
+    'Shift+Print        Select and save a screenshot area' \
     'Super+p            Run a command with dmenu' \
     'Super+s            SSH connection menu' \
-    'Super+b            Open browser (install one first)' \
-    'Super+c            Open VS Code (install first)' \
-    'Super+v            Open virt-manager (install first)' \
+    'Super+b            Open the first installed browser' \
+    'Super+c            Open VS Code, or explain how to install it' \
+    'Super+v            Open virt-manager, or explain how to install it' \
     'Super+Shift+l      Lock the screen' \
     'Super+Shift+b      Toggle the dwm status bar' \
     'Super+Shift+c      Close focused window' \

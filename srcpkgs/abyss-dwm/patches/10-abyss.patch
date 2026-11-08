@@ -90,7 +90,7 @@ index cb4cf6b..06d8e52 100644
  #define TAGKEYS(KEY,TAG) \
  	{ MODKEY,                       KEY,      view,           {.ui = 1 << TAG} }, \
  	{ MODKEY|ControlMask,           KEY,      toggleview,     {.ui = 1 << TAG} }, \
-@@ -58,21 +81,50 @@ static const Layout layouts[] = {
+@@ -58,21 +81,54 @@ static const Layout layouts[] = {
  
  /* commands */
  static char dmenumon[8]; /* component of dmenucmd, manipulated in spawn() */
@@ -99,14 +99,16 @@ index cb4cf6b..06d8e52 100644
 +static const char *dmenucmd[]   = { "dmenu_run", "-i", "-m", dmenumon, "-fn", dmenufont, "-nb", col_norm_bg, "-nf", col_norm_fg, "-sb", col_sel_bg, "-sf", col_sel_fg, NULL };
 +static const char *termcmd[]    = { "st", NULL };
 +static const char *scratchpadcmd[] = { "st", "-t", scratchpadname, "-g", "120x34", NULL };
-+static const char *alacrittycmd[] = { "alacritty", NULL };
++static const char *alacrittycmd[] = { "/usr/local/bin/abyss-control-center", "alacritty", NULL };
 +static const char *sshcmd[]     = { "/usr/local/bin/dmenu-ssh", NULL };
 +static const char *browsercmd[] = { "/usr/local/bin/abyss-control-center", "browser", NULL }; /* notifies when none is installed */
-+static const char *codecmd[]    = { "code", NULL };
-+static const char *virtcmd[]    = { "virt-manager", NULL };
++static const char *codecmd[]    = { "/usr/local/bin/abyss-control-center", "code", NULL };
++static const char *virtcmd[]    = { "/usr/local/bin/abyss-control-center", "virt", NULL };
 +static const char *lockcmd[]    = { "slock", NULL };
 +static const char *helpcmd[]    = { "st", "-e", "/usr/local/bin/abyss-shortcuts", NULL };
 +static const char *controlcentercmd[] = { "/usr/local/bin/abyss-control-center", NULL };
++static const char *screenscmd[] = { "/usr/local/bin/abyss-control-center", "screenshot", NULL };
++static const char *areascreenscmd[] = { "/usr/local/bin/abyss-control-center", "screenshot-area", NULL };
  
  static const Key keys[] = {
  	/* modifier                     key        function        argument */
@@ -115,6 +117,8 @@ index cb4cf6b..06d8e52 100644
 +	{ MODKEY,                       XK_grave,  togglescratch,  {.v = scratchpadcmd } },
 +	{ MODKEY,                       XK_F1,     spawn,          {.v = helpcmd } },
 +	{ MODKEY|Mod1Mask,              XK_Return, spawn,          {.v = alacrittycmd } },
++	{ 0,                            XK_Print,  spawn,          {.v = screenscmd } },
++	{ ShiftMask,                    XK_Print,  spawn,          {.v = areascreenscmd } },
  	{ MODKEY,                       XK_p,      spawn,          {.v = dmenucmd } },
 -	{ MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
 -	{ MODKEY,                       XK_b,      togglebar,      {0} },
@@ -146,7 +150,7 @@ index cb4cf6b..06d8e52 100644
  	{ MODKEY,                       XK_Tab,    view,           {0} },
  	{ MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
  	{ MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
-@@ -86,6 +138,10 @@ static const Key keys[] = {
+@@ -86,6 +142,10 @@ static const Key keys[] = {
  	{ MODKEY,                       XK_period, focusmon,       {.i = +1 } },
  	{ MODKEY|ShiftMask,             XK_comma,  tagmon,         {.i = -1 } },
  	{ MODKEY|ShiftMask,             XK_period, tagmon,         {.i = +1 } },
@@ -157,7 +161,7 @@ index cb4cf6b..06d8e52 100644
  	TAGKEYS(                        XK_1,                      0)
  	TAGKEYS(                        XK_2,                      1)
  	TAGKEYS(                        XK_3,                      2)
-@@ -105,7 +161,9 @@ static const Button buttons[] = {
+@@ -105,7 +165,9 @@ static const Button buttons[] = {
  	{ ClkLtSymbol,          0,              Button1,        setlayout,      {0} },
  	{ ClkLtSymbol,          0,              Button3,        setlayout,      {.v = &layouts[2]} },
  	{ ClkWinTitle,          0,              Button2,        zoom,           {0} },
@@ -167,7 +171,7 @@ index cb4cf6b..06d8e52 100644
  	{ ClkClientWin,         MODKEY,         Button1,        movemouse,      {0} },
  	{ ClkClientWin,         MODKEY,         Button2,        togglefloating, {0} },
  	{ ClkClientWin,         MODKEY,         Button3,        resizemouse,    {0} },
-@@ -114,4 +172,3 @@ static const Button buttons[] = {
+@@ -114,4 +176,3 @@ static const Button buttons[] = {
  	{ ClkTagBar,            MODKEY,         Button1,        tag,            {0} },
  	{ ClkTagBar,            MODKEY,         Button3,        toggletag,      {0} },
  };

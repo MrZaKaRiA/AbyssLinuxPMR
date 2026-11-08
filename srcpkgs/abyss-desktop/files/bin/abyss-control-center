@@ -115,15 +115,21 @@ menu_tree_raw() {
     fi
     cat <<'EOF'
   Terminal	term
-󰏖  Install software	software
-  Search Void packages	package-search
-󰍹  Display setup	display-gui
+  Files	files
+  Web browser	browser
+  Take screenshot	screenshot
+  Select screenshot area	screenshot-area
 󰀻  Applications
 EOF
     has abyss-apps && abyss-apps --xmenu 1
     cat <<'EOF'
 	  Search all apps…	apps
 	  Run a command…	run
+
+󰏖  Software
+	󰏖  Install software	software
+	  Search Void packages	package-search
+	󰚰  Update system	update
 
   Settings
 	󰖩  Network
@@ -151,7 +157,6 @@ EOF
   System
 	󰄨  System monitor	monitor
 	  About this computer	info
-	󰚰  Update system	update
 	󰋊  Disks and free space	disks
 	  Running services	services
 	  Power diagnostics	power-diag
@@ -217,14 +222,27 @@ act() {
         package-search) setsid -f abyss-software --search >/dev/null 2>&1 ;;
         setup)        setsid -f abyss-setup >/dev/null 2>&1 ;;
         term)         first "st" "alacritty" ;;
+        alacritty)    if has alacritty; then first "alacritty"
+                      else notify "Alacritty is not installed" "Opening the default terminal instead."; act term; fi ;;
         files)        first "thunar" "pcmanfm" "nautilus" || act lf ;;
         lf)           if has lf; then term "Files" lf; else term "Files" sh -c 'ls -la; exec bash'; fi ;;
         vim)          if has vim; then term "Editor" vim; else first "code"; fi ;;
-        browser)      if has firefox || has chromium || has flatpak; then
-                          first "firefox" "chromium" "flatpak run com.google.Chrome"
+        browser)      if has firefox || has chromium || has google-chrome-stable || has google-chrome || has brave-browser || has vivaldi; then
+                          first "firefox" "chromium" "google-chrome-stable" "google-chrome" "brave-browser" "vivaldi"
+                      elif has flatpak && flatpak info org.mozilla.firefox >/dev/null 2>&1; then
+                          setsid -f flatpak run org.mozilla.firefox >/dev/null 2>&1
+                      elif has flatpak && flatpak info com.google.Chrome >/dev/null 2>&1; then
+                          setsid -f flatpak run com.google.Chrome >/dev/null 2>&1
                       else
-                          notify "No web browser installed" "Install one in a terminal: i firefox"
+                          notify "No browser is installed" "Open Software → Install software to add Firefox or Chrome."
                       fi ;;
+        screenshot)   abyss-screenshot --screen ;;
+        screenshot-area) abyss-screenshot --area ;;
+        code)         if has code; then first "code"
+                      elif has flatpak && flatpak info com.visualstudio.code >/dev/null 2>&1; then setsid -f flatpak run com.visualstudio.code >/dev/null 2>&1
+                      else notify "VS Code is not installed" "Open Software → Install software to add it."; fi ;;
+        virt)         if has virt-manager; then first "virt-manager"
+                      else notify "Virtual Machine Manager is not installed" "Open Software → Install software to add QEMU and virt-manager."; fi ;;
         apps)         setsid -f abyss-launcher drun ;;
         run)          setsid -f abyss-launcher run ;;
         exec:*)       setsid -f sh -c "${1#exec:}" >/dev/null 2>&1 ;;

@@ -2,7 +2,7 @@
 # Abyss desktop menus and lightweight helpers, updated through the signed PMR.
 pkgname=abyss-desktop
 version=1.0
-revision=11
+revision=13
 depends="abyss-st abyss-dmenu"
 short_desc="Abyss desktop menus, software installer, and hardware setup tools"
 maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
