@@ -11,12 +11,16 @@ post)
 		if [ -e "$wrapper" ] && ! grep -q 'managed by abyss-desktop' "$wrapper"; then
 			[ -e "$wrapper.abyss-backup" ] || cp -p "$wrapper" "$wrapper.abyss-backup"
 		fi
-		cat > "$wrapper" <<EOF
+		# Replace the directory entry instead of truncating it: older images can
+		# contain linked files, where writing through one path changes another.
+		tmp=$(mktemp "usr/local/bin/.abyss-wrapper.XXXXXX") || exit 1
+		cat > "$tmp" <<EOF
 #!/bin/sh
 # managed by abyss-desktop; keep the historical Abyss command path
 exec /usr/bin/$cmd "\$@"
 EOF
-		chmod 0755 "$wrapper"
+		chmod 0755 "$tmp" || exit 1
+		mv -f "$tmp" "$wrapper" || exit 1
 	done
 	;;
 esac
