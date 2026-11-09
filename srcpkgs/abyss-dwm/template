@@ -5,13 +5,13 @@
 #   click opens the Abyss menu
 pkgname=abyss-dwm
 version=6.8
-revision=7
+revision=8
 _gitrev=bca7cf2
 wrksrc="dwm-${version}"
 makedepends="libXinerama-devel libXft-devel freetype-devel"
 # Pull the Abyss theme and desktop helpers so existing installs receive menu,
 # software installer, and status-bar updates through normal XBPS upgrades.
-depends="abyss-theme abyss-desktop"
+depends="abyss-theme abyss-desktop>=1.0_18"
 short_desc="Dynamic window manager for X (Abyss Linux build)"
 maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
 license="MIT"

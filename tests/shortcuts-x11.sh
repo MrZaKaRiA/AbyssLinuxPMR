@@ -32,6 +32,7 @@ dwm > "$testdir/dwm.log" 2>&1 &
 wm_pid=$!
 for _ in $(seq 1 100); do abyss-key-capture --list > "$testdir/bindings" 2>/dev/null && break; sleep .1; done
 grep -F "$(printf 'B\t64\tReturn\t64\tReturn\tOpen terminal')" "$testdir/bindings" >/dev/null
+/tmp/abyss-dialog-window-test
 
 # Exercise the shipped app bindings without relying on a login shell PATH.
 xdotool key --clearmodifiers Super_L+c
