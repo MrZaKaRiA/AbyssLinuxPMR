@@ -5,7 +5,7 @@ helper=abyss-key-capture
 dir="${XDG_CONFIG_HOME:-$HOME/.config}/abyss"
 conf="$dir/shortcuts.conf"
 font='JetBrainsMono Nerd Font:size=10'
-choose() { dmenu -i -c -l 15 -fn "$font" -nb '#0d0b18' -nf '#f3e8ff' -sb '#a855f7' -sf '#090514' "$@"; }
+choose() { dmenu -i -c -l 24 -fn "$font" -nb '#0d0b18' -nf '#f3e8ff' -sb '#a855f7' -sf '#090514' "$@"; }
 message() { printf '%s\n' "$1" | choose -p "${2:-Shortcuts}" >/dev/null; }
 
 bindings() {

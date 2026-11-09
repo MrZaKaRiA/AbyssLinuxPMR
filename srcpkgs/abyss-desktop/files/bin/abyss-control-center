@@ -20,7 +20,7 @@
 #   abyss-control-center --check    list missing optional dependencies
 # ==============================================================================
 
-PATH="/usr/local/bin:${PATH}"
+PATH="/usr/local/bin:${HOME}/.local/bin:${PATH}"
 WALLPAPER=/usr/share/backgrounds/abyss/abyss-wallpaper.jpg
 # Sizes at 96 dpi, scaled by Xft.dpi (set by ~/.xinitrc for HiDPI screens)
 DPI=$(xrdb -query 2>/dev/null | awk '$1 == "Xft.dpi:" {print int($2); exit}')
@@ -34,7 +34,12 @@ NB="#0d0b18" NF="#f3e8ff" SB="#a855f7" SF="#090514"
 has() { command -v "$1" >/dev/null 2>&1; }
 
 notify() {
-    if has notify-send; then notify-send -a "Abyss" "$1" "${2:-}"; else echo "$1 ${2:-}" >&2; fi
+    if has notify-send && notify-send -a "Abyss" "$1" "${2:-}"; then return; fi
+    if [ -n "${DISPLAY:-}" ] && has dmenu; then
+        printf '%s\n' "${2:-$1}" | dmenu_theme -p "$1" >/dev/null
+    else
+        echo "$1 ${2:-}" >&2
+    fi
 }
 
 # Run the first available command of a list ("cmd args" strings), detached.
@@ -248,7 +253,9 @@ act() {
                       fi ;;
         screenshot)   abyss-screenshot --screen ;;
         screenshot-area) abyss-screenshot --area ;;
-        code)         if has code; then first "code"
+        code)         if [ -x "$HOME/.local/opt/vscode/code" ]; then
+                          setsid -f "$HOME/.local/opt/vscode/code" >/dev/null 2>&1
+                      elif has code; then first "code"
                       elif has flatpak && flatpak info com.visualstudio.code >/dev/null 2>&1; then setsid -f flatpak run com.visualstudio.code >/dev/null 2>&1
                       else notify "VS Code is not installed" "Open Software → Install software to add it."; fi ;;
         virt)         if has virt-manager; then first "virt-manager"
