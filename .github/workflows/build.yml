@@ -50,6 +50,7 @@ jobs:
           xbps-install -Sy xorg-server-xvfb xdotool dejavu-fonts-ttf python3 gcc pkg-config libX11-devel
           ABYSS_EDITOR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-shortcut-editor" ABYSS_SHORTCUT_LIST="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-shortcuts" python3 tests/test_shortcut_editor.py
           ABYSS_IMG="$PWD/srcpkgs/abyss-desktop/files/bin/img" ABYSS_APPS="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-apps" ABYSS_IMAGES_DESKTOP="$PWD/srcpkgs/abyss-desktop/files/abyss-images.desktop" python3 tests/test_image_launcher.py
+          ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" python3 tests/test_app_shortcuts.py
           cc -std=c99 -Wall -Wextra -Wno-unused-function tests/shortcut-config.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-shortcut-config-test
           /tmp/abyss-shortcut-config-test
           mkdir -p /usr/local/bin

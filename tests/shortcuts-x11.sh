@@ -18,6 +18,11 @@ cleanup() {
 }
 trap cleanup EXIT
 export DISPLAY=:98 XDG_CONFIG_HOME="$testdir/config" XDG_CACHE_HOME="$testdir/cache" XDG_DATA_HOME="$testdir/data"
+export HOME="$testdir/home with spaces"
+mkdir -p "$HOME/.local/opt/vscode" "$HOME/.local/bin"
+printf '#!/bin/sh\nprintf launched > "%s"\n' "$testdir/vscode-launched" > "$HOME/.local/opt/vscode/code"
+printf '#!/bin/sh\nprintf launched > "%s"\n' "$testdir/browser-launched" > "$HOME/.local/bin/firefox"
+chmod 755 "$HOME/.local/opt/vscode/code" "$HOME/.local/bin/firefox"
 mkdir -p "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$XDG_DATA_HOME/applications"
 Xvfb "$DISPLAY" -screen 0 1280x900x24 -nolisten tcp -ac > "$testdir/xvfb.log" 2>&1 &
 display_pid=$!
@@ -27,6 +32,17 @@ dwm > "$testdir/dwm.log" 2>&1 &
 wm_pid=$!
 for _ in $(seq 1 100); do abyss-key-capture --list > "$testdir/bindings" 2>/dev/null && break; sleep .1; done
 grep -F "$(printf 'B\t64\tReturn\t64\tReturn\tOpen terminal')" "$testdir/bindings" >/dev/null
+
+# Exercise the shipped app bindings without relying on a login shell PATH.
+xdotool key --clearmodifiers Super_L+c
+xdotool key --clearmodifiers Super_L+b
+for _ in $(seq 1 100); do
+    [ -s "$testdir/vscode-launched" ] && [ -s "$testdir/browser-launched" ] && break
+    sleep .1
+done
+test -s "$testdir/vscode-launched"
+test -s "$testdir/browser-launched"
+echo 'VS Code and browser shortcut dispatch: PASS'
 
 # Verify Void's image viewer and both forms of the img command in X11.
 xbps-query -p pkgver nsxiv
