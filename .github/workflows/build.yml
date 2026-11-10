@@ -47,7 +47,7 @@ jobs:
 
       - name: Test shortcut editor and real X11 bindings
         run: |
-          xbps-install -Sy xorg-server-xvfb xvfb-run xdotool dejavu-fonts-ttf python3 gcc pkg-config libX11-devel zenity dbus Thunar xfconf xdg-user-dirs
+          xbps-install -Sy xorg-server-xvfb xvfb-run xdotool dejavu-fonts-ttf python3 gcc pkg-config libX11-devel zenity dbus Thunar xfconf xdg-user-dirs xrdb xrandr
           ABYSS_EDITOR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-shortcut-editor" ABYSS_SHORTCUT_LIST="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-shortcuts" python3 tests/test_shortcut_editor.py
           ABYSS_IMG="$PWD/srcpkgs/abyss-desktop/files/bin/img" ABYSS_APPS="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-apps" ABYSS_IMAGES_DESKTOP="$PWD/srcpkgs/abyss-desktop/files/abyss-images.desktop" python3 tests/test_image_launcher.py
           ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" python3 tests/test_app_shortcuts.py
