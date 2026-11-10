@@ -47,11 +47,12 @@ jobs:
 
       - name: Test shortcut editor and real X11 bindings
         run: |
-          xbps-install -Sy xorg-server-xvfb xvfb-run xdotool dejavu-fonts-ttf python3 gcc pkg-config libX11-devel zenity dbus
+          xbps-install -Sy xorg-server-xvfb xvfb-run xdotool dejavu-fonts-ttf python3 gcc pkg-config libX11-devel zenity dbus Thunar xfconf xdg-user-dirs
           ABYSS_EDITOR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-shortcut-editor" ABYSS_SHORTCUT_LIST="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-shortcuts" python3 tests/test_shortcut_editor.py
           ABYSS_IMG="$PWD/srcpkgs/abyss-desktop/files/bin/img" ABYSS_APPS="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-apps" ABYSS_IMAGES_DESKTOP="$PWD/srcpkgs/abyss-desktop/files/abyss-images.desktop" python3 tests/test_image_launcher.py
           ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" python3 tests/test_app_shortcuts.py
           ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" python3 tests/test_text_size.py
+          ABYSS_THUNAR_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-thunar-init" python3 tests/test_thunar_init.py
           ABYSS_CHOOSER_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-file-chooser-init" python3 tests/test_file_chooser_init.py
           cc -std=c99 -Wall -Wextra tests/dialog-window.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-dialog-window-test
           cc -std=c99 -Wall -Wextra -Wno-unused-function tests/shortcut-config.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-shortcut-config-test
@@ -65,6 +66,17 @@ jobs:
           tests/shortcuts-x11.sh
           cc -std=c99 -Wall -Wextra tests/zenity-luminance.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-zenity-luminance
           ABYSS_SESSION="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-session" LUMINANCE=/tmp/abyss-zenity-luminance xvfb-run -a dbus-run-session -- tests/zenity-dark-x11.sh
+          cc -std=c99 -Wall -Wextra tests/x11-screenshot.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-x11-screenshot
+          mkdir -p /tmp/abyss-thunar-preview
+          ABYSS_THUNAR_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-thunar-init" SCREENSHOT=/tmp/abyss-x11-screenshot OUTPUT=/tmp/abyss-thunar-preview/thunar.ppm xvfb-run -a -s '-screen 0 1600x1000x24' dbus-run-session -- tests/thunar-x11.sh
+
+      - name: Save Thunar preview
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: thunar-preview
+          path: /tmp/abyss-thunar-preview/thunar.ppm
+          if-no-files-found: error
 
       - name: Sign repository
         if: github.event_name != 'pull_request'
