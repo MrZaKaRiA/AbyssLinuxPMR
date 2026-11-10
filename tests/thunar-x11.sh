@@ -16,7 +16,7 @@ width=$(xfconf-query -c thunar -p /last-separator-position)
 for folder in Documents Downloads Pictures Music Videos; do
     grep -F "/$folder" "$XDG_CONFIG_HOME/gtk-3.0/bookmarks" >/dev/null
 done
-GTK_THEME=Abyss thunar --disable-server "$HOME" > "$tmp/thunar.log" 2>&1 &
+GTK_THEME=Abyss thunar "$HOME" > "$tmp/thunar.log" 2>&1 &
 pid=$!
 win=
 for _ in $(seq 1 80); do
