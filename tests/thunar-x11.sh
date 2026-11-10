@@ -25,6 +25,8 @@ for _ in $(seq 1 80); do
     sleep .2
 done
 if [ -z "$win" ]; then cat "$tmp/thunar.log" >&2; kill "$pid" 2>/dev/null || :; exit 1; fi
+xdotool getwindowname "$win"
+xdotool getwindowgeometry "$win"
 xdotool windowmove "$win" 0 0
 xdotool windowsize "$win" 1280 800
 sleep 3
