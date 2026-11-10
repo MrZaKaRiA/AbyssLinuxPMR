@@ -13,7 +13,11 @@ int main(int argc, char **argv) {
     Display *d = XOpenDisplay(NULL);
     XWindowAttributes a;
     if (!d || !XGetWindowAttributes(d, strtoul(argv[1], NULL, 0), &a)) return 1;
-    XImage *im = XGetImage(d, strtoul(argv[1], NULL, 0), 0, 0, a.width, a.height, AllPlanes, ZPixmap);
+    /* XGetImage on a partially off-screen window fails with BadMatch. Capture
+     * the full root window after confirming the requested window exists. */
+    Window root = DefaultRootWindow(d);
+    if (!XGetWindowAttributes(d, root, &a)) return 1;
+    XImage *im = XGetImage(d, root, 0, 0, a.width, a.height, AllPlanes, ZPixmap);
     if (!im) return 1;
     FILE *out = fopen(argv[2], "wb");
     if (!out) return 1;
