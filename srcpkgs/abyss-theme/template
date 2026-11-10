@@ -4,13 +4,13 @@
 #   (Papirus-Dark with violet folders), system-wide GTK defaults.
 pkgname=abyss-theme
 version=1.0
-revision=2
+revision=3
 depends="papirus-icon-theme xdg-user-dirs"
 short_desc="Abyss Linux dark GTK theme and violet folder icons"
 maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
 license="MIT"
 homepage="https://github.com/MrZaKaRiA/AbyssLinux"
-conf_files="/etc/xdg/gtk-3.0/settings.ini /etc/xdg/gtk-4.0/settings.ini /etc/lightdm/lightdm-gtk-greeter.conf"
+conf_files="/etc/xdg/gtk-3.0/settings.ini /etc/xdg/gtk-4.0/settings.ini"
 
 do_install() {
 	vinstall ${FILESDIR}/index.theme 644 usr/share/themes/Abyss
@@ -31,8 +31,4 @@ do_install() {
 	printf '[Settings]\ngtk-application-prefer-dark-theme=1\ngtk-icon-theme-name=Abyss\n' \
 		> ${DESTDIR}/etc/xdg/gtk-4.0/settings.ini
 
-	# Accessible login configuration; packaged so normal XBPS upgrades can
-	# update the greeter layout without rebuilding the base Void image.
-	vmkdir etc/lightdm
-	vinstall ${FILESDIR}/lightdm-gtk-greeter.conf 644 etc/lightdm
 }
