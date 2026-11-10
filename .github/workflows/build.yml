@@ -101,7 +101,7 @@ jobs:
           mkdir -p /etc/xbps.d && cp /usr/share/xbps.d/*-repository-*.conf /etc/xbps.d/
           sed -i 's|repo-default|repo-ci|g' /etc/xbps.d/*-repository-*.conf
           xbps-install -Syu xbps && xbps-install -yu
-          xbps-install -y Thunar xfconf xdg-user-dirs xrdb xrandr xvfb-run xdotool dbus gcc pkg-config libX11-devel papirus-icon-theme
+          xbps-install -y Thunar xfconf xdg-user-dirs xrdb xrandr xvfb-run xdotool dbus gcc pkg-config libX11-devel papirus-icon-theme dwm dejavu-fonts-ttf
       - uses: actions/checkout@v4
       - name: Test and capture Thunar
         run: |
