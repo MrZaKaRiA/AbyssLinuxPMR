@@ -47,7 +47,7 @@ jobs:
 
       - name: Test shortcut editor and real X11 bindings
         run: |
-          xbps-install -Sy xorg-server-xvfb xdotool dejavu-fonts-ttf python3 gcc pkg-config libX11-devel
+          xbps-install -Sy xorg-server-xvfb xvfb-run xdotool dejavu-fonts-ttf python3 gcc pkg-config libX11-devel zenity dbus
           ABYSS_EDITOR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-shortcut-editor" ABYSS_SHORTCUT_LIST="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-shortcuts" python3 tests/test_shortcut_editor.py
           ABYSS_IMG="$PWD/srcpkgs/abyss-desktop/files/bin/img" ABYSS_APPS="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-apps" ABYSS_IMAGES_DESKTOP="$PWD/srcpkgs/abyss-desktop/files/abyss-images.desktop" python3 tests/test_image_launcher.py
           ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" python3 tests/test_app_shortcuts.py
@@ -63,6 +63,8 @@ jobs:
           grep -Fx 'exec /usr/bin/abyss-shortcuts "$@"' /usr/local/bin/abyss-shortcuts
           grep -Fx 'exec /usr/bin/abyss-welcome "$@"' /usr/local/bin/abyss-welcome
           tests/shortcuts-x11.sh
+          cc -std=c99 -Wall -Wextra tests/zenity-luminance.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-zenity-luminance
+          ABYSS_SESSION="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-session" LUMINANCE=/tmp/abyss-zenity-luminance xvfb-run -a dbus-run-session -- tests/zenity-dark-x11.sh
 
       - name: Sign repository
         if: github.event_name != 'pull_request'
