@@ -13,11 +13,21 @@ int main(int argc, char **argv) {
     Display *d = XOpenDisplay(NULL);
     XWindowAttributes a;
     if (!d || !XGetWindowAttributes(d, strtoul(argv[1], NULL, 0), &a)) return 1;
-    /* XGetImage on a partially off-screen window fails with BadMatch. Capture
-     * the full root window after confirming the requested window exists. */
-    Window root = DefaultRootWindow(d);
-    if (!XGetWindowAttributes(d, root, &a)) return 1;
-    XImage *im = XGetImage(d, root, 0, 0, a.width, a.height, AllPlanes, ZPixmap);
+    /* XGetImage requires the requested part of the window to be on screen. */
+    Window win = strtoul(argv[1], NULL, 0), child, root = DefaultRootWindow(d);
+    XWindowAttributes screen;
+    int x, y;
+    if (!XGetWindowAttributes(d, root, &screen) ||
+        !XTranslateCoordinates(d, win, root, 0, 0, &x, &y, &child)) return 1;
+    int left = x < 0 ? -x : 0, top = y < 0 ? -y : 0;
+    int width = a.width - left, height = a.height - top;
+    int available_width = screen.width - (x > 0 ? x : 0);
+    int available_height = screen.height - (y > 0 ? y : 0);
+    if (width > available_width) width = available_width;
+    if (height > available_height) height = available_height;
+    if (width <= 0 || height <= 0) return 1;
+    XImage *im = XGetImage(d, win, left, top, width, height, AllPlanes, ZPixmap);
+    a.width = width; a.height = height;
     if (!im) return 1;
     FILE *out = fopen(argv[2], "wb");
     if (!out) return 1;
