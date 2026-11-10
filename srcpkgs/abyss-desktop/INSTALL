@@ -5,7 +5,7 @@ post)
 	mkdir -p usr/local/bin
 	for cmd in abyss-apps abyss-control-center abyss-display abyss-display-setup abyss-file-chooser-init \
 		abyss-installer abyss-keyboard abyss-key-capture abyss-launcher abyss-power abyss-priv \
-		abyss-session abyss-setup abyss-shortcuts abyss-shortcut-editor abyss-screenshot abyss-software abyss-welcome \
+		abyss-session abyss-thunar-init abyss-setup abyss-shortcuts abyss-shortcut-editor abyss-screenshot abyss-software abyss-welcome \
 		dmenu-ssh dwm-statusbar; do
 		wrapper="usr/local/bin/$cmd"
 		if [ -e "$wrapper" ] && ! grep -q 'managed by abyss-desktop' "$wrapper"; then

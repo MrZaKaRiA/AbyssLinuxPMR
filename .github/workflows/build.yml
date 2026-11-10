@@ -52,6 +52,7 @@ jobs:
           ABYSS_IMG="$PWD/srcpkgs/abyss-desktop/files/bin/img" ABYSS_APPS="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-apps" ABYSS_IMAGES_DESKTOP="$PWD/srcpkgs/abyss-desktop/files/abyss-images.desktop" python3 tests/test_image_launcher.py
           ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" python3 tests/test_app_shortcuts.py
           ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" python3 tests/test_text_size.py
+          ABYSS_THUNAR_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-thunar-init" python3 tests/test_thunar_init.py
           ABYSS_CHOOSER_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-file-chooser-init" python3 tests/test_file_chooser_init.py
           cc -std=c99 -Wall -Wextra tests/dialog-window.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-dialog-window-test
           cc -std=c99 -Wall -Wextra -Wno-unused-function tests/shortcut-config.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-shortcut-config-test
@@ -89,10 +90,38 @@ jobs:
         with:
           path: public
 
+  thunar-preview:
+    name: Test real Thunar layout
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/void-linux/void-glibc-full
+    steps:
+      - name: Prepare X11 and Thunar
+        run: |
+          mkdir -p /etc/xbps.d && cp /usr/share/xbps.d/*-repository-*.conf /etc/xbps.d/
+          sed -i 's|repo-default|repo-ci|g' /etc/xbps.d/*-repository-*.conf
+          xbps-install -Syu xbps && xbps-install -yu
+          xbps-install -y Thunar xfconf xdg-user-dirs xrdb xrandr xvfb-run xdotool dbus gcc pkg-config libX11-devel papirus-icon-theme dwm dejavu-fonts-ttf
+      - uses: actions/checkout@v4
+      - name: Test and capture Thunar
+        run: |
+          mkdir -p /usr/share/themes/Abyss/gtk-3.0 /tmp/abyss-thunar-preview
+          cp srcpkgs/abyss-theme/files/index.theme /usr/share/themes/Abyss/
+          cp srcpkgs/abyss-theme/files/gtk-3.0/gtk.css /usr/share/themes/Abyss/gtk-3.0/
+          cc -std=c99 -Wall -Wextra tests/x11-screenshot.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-x11-screenshot
+          ABYSS_THUNAR_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-thunar-init" SCREENSHOT=/tmp/abyss-x11-screenshot OUTPUT=/tmp/abyss-thunar-preview/thunar.ppm xvfb-run -a -s '-screen 0 1600x1000x24 -noreset' dbus-run-session -- tests/thunar-x11.sh
+      - name: Save Thunar preview
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: thunar-preview
+          path: /tmp/abyss-thunar-preview/thunar.ppm
+          if-no-files-found: warn
+
   deploy:
     name: Publish to GitHub Pages
     if: github.event_name != 'pull_request'
-    needs: build
+    needs: [build, thunar-preview]
     runs-on: ubuntu-latest
     environment:
       name: github-pages

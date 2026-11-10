@@ -151,3 +151,21 @@ scrollbar slider:hover, scrollbar slider:active { background-color: #a855f7; }
   min-height: 2em;
   padding: 0.35em 0.8em;
 }
+
+/* Thunar: a distinct places pane, roomier navigation, and a visible divider. */
+.thunar .shortcuts-pane,
+.thunar .shortcuts-pane treeview.view {
+  background-color: #15111f;
+  color: #f3e8ff;
+}
+.thunar .shortcuts-pane treeview.view {
+  -GtkTreeView-vertical-separator: 8;
+}
+.thunar .shortcuts-pane treeview.view:selected {
+  background-color: #a855f7;
+  color: #090514;
+}
+.thunar paned > separator { background-color: #4c1d95; min-width: 3px; }
+.thunar toolbar button { min-height: 26px; padding: 3px 6px; }
+.thunar toolbar entry { min-height: 26px; padding: 3px 8px; }
+.thunar statusbar { padding: 3px 6px; }
