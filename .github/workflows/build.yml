@@ -52,6 +52,7 @@ jobs:
           ABYSS_IMG="$PWD/srcpkgs/abyss-desktop/files/bin/img" ABYSS_APPS="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-apps" ABYSS_IMAGES_DESKTOP="$PWD/srcpkgs/abyss-desktop/files/abyss-images.desktop" python3 tests/test_image_launcher.py
           ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" python3 tests/test_app_shortcuts.py
           ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" python3 tests/test_text_size.py
+          ABYSS_ROFI_REPAIR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-rofi-repair" python3 tests/test_rofi_repair.py
           ABYSS_THUNAR_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-thunar-init" python3 tests/test_thunar_init.py
           ABYSS_CHOOSER_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-file-chooser-init" python3 tests/test_file_chooser_init.py
           cc -std=c99 -Wall -Wextra tests/dialog-window.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-dialog-window-test
@@ -90,6 +91,23 @@ jobs:
         with:
           path: public
 
+  rofi-integration:
+    name: Test real Rofi upgrade and launcher
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/void-linux/void-glibc-full
+    steps:
+      - name: Prepare X11 and Rofi
+        run: |
+          mkdir -p /etc/xbps.d && cp /usr/share/xbps.d/*-repository-*.conf /etc/xbps.d/
+          sed -i 's|repo-default|repo-ci|g' /etc/xbps.d/*-repository-*.conf
+          xbps-install -Syu xbps && xbps-install -yu
+          xbps-install -y rofi xvfb-run xdotool dbus xrdb dejavu-fonts-ttf
+      - uses: actions/checkout@v4
+      - name: Test legacy Rofi repair and launcher
+        run: |
+          ABYSS_ROFI_REPAIR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-rofi-repair" ABYSS_LAUNCHER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-launcher" LEGACY_CONFIG="$PWD/tests/fixtures/rofi-27.1-broken.rasi" SYSTEM_CONFIG="$PWD/srcpkgs/abyss-desktop/files/rofi-config.rasi" xvfb-run -a -s '-screen 0 1280x800x24 -noreset' dbus-run-session -- tests/rofi-x11.sh
+
   thunar-preview:
     name: Test real Thunar layout
     runs-on: ubuntu-latest
@@ -121,7 +139,7 @@ jobs:
   deploy:
     name: Publish to GitHub Pages
     if: github.event_name != 'pull_request'
-    needs: [build, thunar-preview]
+    needs: [build, thunar-preview, rofi-integration]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
