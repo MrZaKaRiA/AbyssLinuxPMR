@@ -12,6 +12,9 @@
 
 PATH="/usr/local/bin:${PATH}"
 mode="${1:-drun}"
+# Repair the known historical default before any Rofi invocation, including
+# launchers used without logging out after updating abyss-desktop.
+command -v abyss-rofi-repair >/dev/null 2>&1 && abyss-rofi-repair >/dev/null 2>&1 || :
 
 dpi=$(xrdb -query 2>/dev/null | awk '$1 == "Xft.dpi:" {print int($2); exit}')
 
@@ -30,7 +33,9 @@ if command -v rofi >/dev/null 2>&1; then
         exec rofi -no-config -show "$mode" ${dpi:+-dpi "$dpi"}
     fi
 
-    if [ -r "$user_config" ] && ! rofi -config "$user_config" -dump-config >/dev/null 2>&1; then
+    # -dump-config can return success even if parsing failed. Rofi's parser
+    # validation mode reports errors without opening a blocking error dialog.
+    if [ -r "$user_config" ] && ! rofi -rasi-validate "$user_config" >/dev/null 2>&1; then
         if [ -r "$system_config" ]; then
             exec rofi -config "$system_config" -show "$mode" ${dpi:+-dpi "$dpi"}
         fi
