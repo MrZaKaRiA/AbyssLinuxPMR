@@ -54,6 +54,7 @@ jobs:
           ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" python3 tests/test_text_size.py
           ABYSS_CURSOR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-cursor" python3 tests/test_cursor.py
           ABYSS_DISPLAY="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-display" python3 tests/test_display.py
+          ABYSS_WALLPAPERS="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-wallpapers" ABYSS_WALLPAPER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-wallpaper" ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" python3 tests/test_wallpapers.py
           ABYSS_ROFI_REPAIR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-rofi-repair" python3 tests/test_rofi_repair.py
           ABYSS_THUNAR_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-thunar-init" python3 tests/test_thunar_init.py
           ABYSS_CHOOSER_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-file-chooser-init" python3 tests/test_file_chooser_init.py
