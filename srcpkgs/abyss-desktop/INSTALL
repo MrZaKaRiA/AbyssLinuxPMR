@@ -22,5 +22,30 @@ EOF
 		chmod 0755 "$tmp" || exit 1
 		mv -f "$tmp" "$wrapper" || exit 1
 	done
+
+	# Let root use doas on systems installed before the image shipped the rule:
+	# root is not in wheel, so `doas <cmd>` (the update/upgrade/u/i/r shell
+	# shortcuts in root's copy of the skel rc files) was denied in a root shell.
+	# Safe: root already holds every privilege doas grants. Only ever appends
+	# this one rule, once, to an existing config with no root rule (rewritten root:root 0400, the
+	# mode doas documents); no other rule is touched, and any failure leaves the
+	# config as it was.
+	conf=etc/doas.conf
+	if [ -f "$conf" ] && ! grep -Eq '^[[:space:]]*(permit|deny)([[:space:]]+(nopass|persist|keepenv|nolog|setenv[[:space:]]*\{[^}]*\}))*[[:space:]]+root([[:space:]]|$)' "$conf"; then
+		tmp=$(mktemp etc/.doas.conf.XXXXXX) && cat "$conf" > "$tmp" && {
+			[ -z "$(tail -c 1 "$tmp")" ] || echo >> "$tmp"
+			printf '%s\n' '' \
+				'# root may use doas too (added by abyss-desktop); keep this last' \
+				'permit nopass root' >> "$tmp"
+		} && chmod 0400 "$tmp" && {
+			# doas wants root:root; only a non-root rootdir install cannot set it
+			chown 0:0 "$tmp" 2>/dev/null || [ "$(id -u)" -ne 0 ]
+		} && {
+			! command -v doas >/dev/null 2>&1 || doas -C "$tmp" >/dev/null 2>&1
+		} && mv -f "$tmp" "$conf" || {
+			[ -z "$tmp" ] || rm -f "$tmp"
+			echo "abyss-desktop: /etc/doas.conf left unchanged (could not add the root rule)" >&2
+		}
+	fi
 	;;
 esac
