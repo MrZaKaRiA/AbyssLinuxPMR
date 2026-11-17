@@ -1,27 +1,24 @@
 #!/bin/sh
 # Keep historical /usr/local/bin paths working for Abyss desktop bindings.
 case "$ACTION" in
+pre)
+	# Images up to 27.3.3 copied the Abyss commands into /usr/local/bin. A
+	# copy identical to the /usr/bin file of the package being replaced is
+	# not a local edit: note it, so post makes it a wrapper without keeping
+	# an .abyss-backup of it.
+	if [ -d usr/local/bin ] && mkdir -p var/lib/abyss-desktop; then
+		for f in usr/local/bin/*; do
+			[ -f "$f" ] && [ ! -L "$f" ] || continue
+			grep -q 'managed by abyss-desktop' "$f" && continue
+			cmp -s "$f" "usr/bin/${f##*/}" 2>/dev/null && printf '%s\n' "${f##*/}"
+		done > var/lib/abyss-desktop/.local-bin-copies
+	fi
+	;;
 post)
-	mkdir -p usr/local/bin
-	for cmd in abyss-apps abyss-cursor abyss-control-center abyss-display abyss-display-setup abyss-file-chooser-init \
-		abyss-installer abyss-keyboard abyss-key-capture abyss-launcher abyss-power abyss-priv \
-		abyss-session abyss-record abyss-rofi-repair abyss-thunar-init abyss-setup abyss-shortcuts abyss-shortcut-editor abyss-screenshot abyss-software abyss-wallpaper abyss-wallpapers abyss-welcome \
-		dmenu-ssh dwm-statusbar; do
-		wrapper="usr/local/bin/$cmd"
-		if [ -e "$wrapper" ] && ! grep -q 'managed by abyss-desktop' "$wrapper"; then
-			[ -e "$wrapper.abyss-backup" ] || cp -p "$wrapper" "$wrapper.abyss-backup"
-		fi
-		# Replace the directory entry instead of truncating it: older images can
-		# contain linked files, where writing through one path changes another.
-		tmp=$(mktemp "usr/local/bin/.abyss-wrapper.XXXXXX") || exit 1
-		cat > "$tmp" <<EOF
-#!/bin/sh
-# managed by abyss-desktop; keep the historical Abyss command path
-exec /usr/bin/$cmd "\$@"
-EOF
-		chmod 0755 "$tmp" || exit 1
-		mv -f "$tmp" "$wrapper" || exit 1
-	done
+	# Keep the historical /usr/local/bin paths working: each Abyss command
+	# there becomes a wrapper for the packaged /usr/bin one. The list and the
+	# wrapper text live in this helper; the ISO build runs it too.
+	sh usr/libexec/abyss-desktop/local-bin-wrappers || exit 1
 
 	# Let root use doas on systems installed before the image shipped the rule:
 	# root is not in wheel, so `doas <cmd>` (the update/upgrade/u/i/r shell
@@ -113,6 +110,42 @@ EOF
 			;;
 		esac
 		[ -z "$done_elogind" ] || { mkdir -p "${stamp%/*}" && : > "$stamp"; }
+	fi
+
+	# Time synchronisation: chrony (a dependency) keeps the clock right. A
+	# wrong clock breaks TLS and package signature checks, and a virtual
+	# machine's clock falls behind whenever the host sleeps. Enabled once per
+	# system and only when no other NTP client is enabled; a user who
+	# disables it later keeps it disabled. /etc/sv/chronyd/conf (kept if it
+	# exists) points chronyd at /usr/share/abyss/chrony.conf: Void's
+	# /etc/chrony.conf plus stepping the clock after a host sleep.
+	stamp=var/lib/abyss-desktop/time-sync-enabled
+	if [ ! -e "$stamp" ] && [ -f etc/sv/chronyd/run ]; then
+		other=
+		for sv in chronyd ntpd openntpd isc-ntpd ntpd-rs busybox-ntpd sntpd; do
+			for l in etc/runit/runsvdir/*/"$sv"; do
+				if [ -e "$l" ] || [ -L "$l" ]; then other=$sv; fi
+			done
+		done
+		done_ntp=yes
+		if [ -n "$other" ]; then
+			echo "abyss-desktop: time synchronisation left to the enabled $other service" >&2
+		else
+			[ -e etc/sv/chronyd/conf ] || cat > etc/sv/chronyd/conf <<'EOF'
+# managed by abyss-desktop: chronyd reads /usr/share/abyss/chrony.conf, which
+# includes /etc/chrony.conf (change settings there) and lets chronyd step
+# the clock after a virtual machine's host slept. Delete this file to use
+# /etc/chrony.conf alone.
+[ -r /usr/share/abyss/chrony.conf ] && OPTS="-f /usr/share/abyss/chrony.conf"
+EOF
+			mkdir -p etc/runit/runsvdir/default
+			if ln -s /etc/sv/chronyd etc/runit/runsvdir/default/chronyd; then
+				echo "abyss-desktop: enabled chronyd (time synchronisation; to undo: rm /var/service/chronyd)" >&2
+			else
+				done_ntp=
+			fi
+		fi
+		[ -z "$done_ntp" ] || { mkdir -p "${stamp%/*}" && : > "$stamp"; }
 	fi
 	;;
 esac

@@ -1,18 +1,18 @@
 #!/bin/sh
 case "$ACTION" in
 post)
-	for cmd in abyss-apps abyss-control-center abyss-display abyss-display-setup abyss-file-chooser-init \
-		abyss-installer abyss-keyboard abyss-key-capture abyss-launcher abyss-power abyss-priv \
-		abyss-session abyss-rofi-repair abyss-thunar-init abyss-setup abyss-shortcuts abyss-shortcut-editor abyss-screenshot abyss-software abyss-welcome \
-		dmenu-ssh dwm-statusbar; do
-		wrapper="usr/local/bin/$cmd"
-		if grep -q 'managed by abyss-desktop' "$wrapper" 2>/dev/null; then
+	# Package removed (not updated): drop every /usr/local/bin wrapper INSTALL
+	# wrote (found by its marker, so no command list can miss one) and put
+	# back a local file INSTALL had set aside.
+	if [ "$UPDATE" != yes ]; then
+		for wrapper in usr/local/bin/*; do
+			[ -f "$wrapper" ] && grep -q 'managed by abyss-desktop' "$wrapper" 2>/dev/null || continue
 			if [ -e "$wrapper.abyss-backup" ]; then
-				mv "$wrapper.abyss-backup" "$wrapper"
+				mv -f "$wrapper.abyss-backup" "$wrapper"
 			else
 				rm -f "$wrapper"
 			fi
-		fi
-	done
+		done
+	fi
 	;;
 esac
