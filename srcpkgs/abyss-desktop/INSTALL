@@ -47,5 +47,72 @@ EOF
 			echo "abyss-desktop: /etc/doas.conf left unchanged (could not add the root rule)" >&2
 		}
 	fi
+
+	# Shell helpers moved from the image-only /etc/profile.d/99-void-dev-cli.sh
+	# to the packaged /etc/profile.d/zz-abyss-cli.sh, so updates now reach them.
+	# ~/.bashrc and /root/.bashrc of existing installs load the old name, so
+	# an untouched old copy (sha256 of every version an Abyss image shipped)
+	# becomes a stub that loads the packaged file. A locally edited copy is
+	# kept as it is; zz- loads after it in login shells.
+	old=etc/profile.d/99-void-dev-cli.sh
+	if [ -f "$old" ] && [ ! -L "$old" ]; then
+		if grep -q '^# managed by abyss-desktop' "$old"; then
+			old_kind=stub
+		else
+			case "$(sha256sum < "$old" 2>/dev/null)" in
+			71b4c0585ab19cf841ac77fee8e0d5c4074cb7d00b263221392c856be12f8566*|\
+			4231d3003e7615c015765a30705901f49578c641dea4e1c6bceb4780191ea718*|\
+			be7a15dfe2f05cc40e45c61f38436ab00cd733415d4280fff007e2c3a56d73f1*|\
+			42eac4ad44a477b97efb2e2c581e023d158bbfa438d0be1d4a55f5bafcb662c8*)
+				old_kind=shipped ;;
+			*)	old_kind=edited ;;
+			esac
+		fi
+		if [ "$old_kind" = edited ]; then
+			echo "abyss-desktop: kept your edited /etc/profile.d/99-void-dev-cli.sh; the updated shell helpers are in /etc/profile.d/zz-abyss-cli.sh" >&2
+		else
+			tmp=$(mktemp etc/profile.d/.abyss-cli.XXXXXX) && cat > "$tmp" <<'EOF' &&
+# managed by abyss-desktop: the Abyss shell helpers (update, upgrade,
+# install, ...) moved to /etc/profile.d/zz-abyss-cli.sh, which package
+# updates keep current. This stub stays because ~/.bashrc loads this name.
+[ -r /etc/profile.d/zz-abyss-cli.sh ] && . /etc/profile.d/zz-abyss-cli.sh
+EOF
+			chmod 0644 "$tmp" && mv -f "$tmp" "$old" || {
+				[ -z "$tmp" ] || rm -f "$tmp"
+				echo "abyss-desktop: could not update /etc/profile.d/99-void-dev-cli.sh" >&2
+			}
+		fi
+	fi
+
+	# elogind: stop runit from starting it. D-Bus starts elogind on demand
+	# (org.freedesktop.login1.service from the elogind package) as soon as
+	# LightDM, polkit or NetworkManager ask for it, which happens before
+	# runit's elogind service passes its `sv check dbus`. runit then retried
+	# every second forever ("elogind is already running as PID N" in dmesg).
+	# Done once per system, and only for the stock link: a link the user makes
+	# again later is left alone. A runit-owned elogind that is up right now is
+	# not stopped under a running desktop; the next update tries again.
+	stamp=var/lib/abyss-desktop/elogind-dbus-activated
+	link=etc/runit/runsvdir/default/elogind
+	if [ ! -e "$stamp" ]; then
+		done_elogind=yes
+		case "$(readlink "$link" 2>/dev/null)" in
+		/etc/sv/elogind|/etc/sv/elogind/)
+			# runsv writes its child's pid; in the restart loop that child
+			# lives for milliseconds, a real runit-owned daemon stays.
+			pid=$(cat etc/sv/elogind/supervise/pid 2>/dev/null)
+			if [ -n "$pid" ] && [ "$(cat "/proc/$pid/comm" 2>/dev/null)" = elogind ]; then
+				sleep 1
+				[ "$(cat etc/sv/elogind/supervise/pid 2>/dev/null)" != "$pid" ] || done_elogind=
+			fi
+			if [ -n "$done_elogind" ] && rm -f "$link" && [ ! -L "$link" ]; then
+				echo "abyss-desktop: disabled the elogind runit service; D-Bus starts elogind when it is needed (to undo: ln -s /etc/sv/elogind /var/service/)" >&2
+			else
+				done_elogind=
+			fi
+			;;
+		esac
+		[ -z "$done_elogind" ] || { mkdir -p "${stamp%/*}" && : > "$stamp"; }
+	fi
 	;;
 esac
