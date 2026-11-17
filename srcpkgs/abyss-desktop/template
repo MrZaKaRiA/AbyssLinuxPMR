@@ -2,7 +2,7 @@
 # Abyss desktop menus and lightweight helpers, updated through the signed PMR.
 pkgname=abyss-desktop
 version=1.0
-revision=29
+revision=30
 makedepends="libX11-devel"
 depends="abyss-st abyss-dmenu abyss-slock>=1.7_2 nsxiv feh xss-lock adwaita-icon-theme xmenu xdotool"
 short_desc="Abyss desktop menus, software installer, and hardware setup tools"
@@ -20,6 +20,10 @@ do_install() {
 		vinstall "$f" 755 usr/bin
 	done
 	vinstall ${FILESDIR}/abyss-images.desktop 644 usr/share/applications
+	# Interactive shell helpers (update, upgrade, install, ...). Not a
+	# conf_file on purpose: it is code that every update must be able to fix;
+	# local changes belong in ~/.bashrc. INSTALL migrates the old copy.
+	vinstall ${FILESDIR}/zz-abyss-cli.sh 644 etc/profile.d
 
 	vmkdir usr/share/abyss/rofi
 	vinstall ${FILESDIR}/rofi-config.rasi 644 usr/share/abyss/rofi config.rasi
