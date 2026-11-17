@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Test xss-lock inhibitor handoff using an isolated Xvfb display; run as root."""
+"""Test xss-lock inhibitor handoff using an isolated Xvfb display; run as root.
+
+The invoking user needs a usable password hash in /etc/shadow: slock exits at
+startup with "crypt: Invalid argument" for an empty or locked ("!", "*") entry.
+"""
 import ctypes
 import os
 import select
