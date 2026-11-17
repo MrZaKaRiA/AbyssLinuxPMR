@@ -1,0 +1,67 @@
+#!/bin/sh
+# local-bin-wrappers [--no-backup] | --list | --print CMD
+#
+# The Abyss commands used to live in /usr/local/bin, and dwm, LightDM's
+# display-setup-script, the X session file, the doas/sudo rule for
+# abyss-power and users' own files still run them from there. abyss-desktop
+# ships them in /usr/bin; this makes each /usr/local/bin/<cmd> a wrapper
+# that runs /usr/bin/<cmd>, so the old paths keep working and every package
+# update reaches them.
+#
+# Run it from the system root: abyss-desktop's INSTALL runs it on every
+# install and update, and the Abyss ISO build runs it in the image root
+# (AbyssLinux builder/abyss-postsetup.sh), so a new install and an updated
+# system get the same files.
+#
+#   (no option)  write the wrappers. A file there that is not a wrapper and
+#                differs from /usr/bin/<cmd> (a local script) is kept as
+#                <cmd>.abyss-backup; removing abyss-desktop puts it back.
+#   --no-backup  write the wrappers, keep no backups (image build: what is
+#                there came from the image overlay)
+#   --list       print the commands
+#   --print CMD  print the wrapper for CMD
+#
+# Keep COMMANDS equal to files/bin plus abyss-key-capture (tests check it).
+COMMANDS='abyss-apps abyss-control-center abyss-cursor abyss-display abyss-display-setup
+abyss-file-chooser-init abyss-installer abyss-key-capture abyss-keyboard abyss-launcher
+abyss-power abyss-priv abyss-record abyss-rofi-repair abyss-screenshot abyss-session
+abyss-setup abyss-shortcut-editor abyss-shortcuts abyss-software abyss-thunar-init
+abyss-wallpaper abyss-wallpapers abyss-welcome dmenu-ssh dwm-statusbar img'
+
+# Names INSTALL's pre step found as unedited image copies (identical to the
+# package version being replaced): no backup needed.
+COPIES=var/lib/abyss-desktop/.local-bin-copies
+
+wrapper() {
+	printf '%s\n' '#!/bin/sh' \
+		'# managed by abyss-desktop; keep the historical Abyss command path' \
+		"exec /usr/bin/$1 \"\$@\""
+}
+
+backup=yes
+case "${1:-}" in
+--list) printf '%s\n' $COMMANDS; exit 0 ;;
+--print) wrapper "${2:?usage: $0 --print CMD}"; exit 0 ;;
+--no-backup) backup= ;;
+'') ;;
+*) echo "usage: $0 [--no-backup] | --list | --print CMD" >&2; exit 2 ;;
+esac
+
+mkdir -p usr/local/bin || exit 1
+for cmd in $COMMANDS; do
+	[ -e "usr/bin/$cmd" ] || continue
+	path="usr/local/bin/$cmd"
+	if [ -n "$backup" ] && { [ -e "$path" ] || [ -L "$path" ]; } &&
+		! grep -q 'managed by abyss-desktop' "$path" 2>/dev/null &&
+		! cmp -s "$path" "usr/bin/$cmd" && ! grep -qx "$cmd" "$COPIES" 2>/dev/null; then
+		[ -e "$path.abyss-backup" ] || cp -p "$path" "$path.abyss-backup"
+	fi
+	# Replace the directory entry instead of truncating it: older images can
+	# contain linked files, where writing through one path changes another,
+	# and a running script keeps reading the file it opened.
+	tmp=$(mktemp "usr/local/bin/.abyss-wrapper.XXXXXX") || exit 1
+	wrapper "$cmd" > "$tmp" && chmod 0755 "$tmp" && mv -f "$tmp" "$path" || {
+		rm -f "$tmp"; exit 1
+	}
+done
+rm -f "$COPIES"
