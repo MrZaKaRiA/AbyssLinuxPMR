@@ -4,7 +4,7 @@
 #   JetBrainsMono Nerd Font in points so it follows Xft.dpi (HiDPI)
 pkgname=abyss-st
 version=0.9.3
-revision=1
+revision=2
 _gitrev=fdaadd5
 wrksrc="st-${version}"
 build_style=gnu-makefile

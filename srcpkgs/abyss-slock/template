@@ -2,7 +2,7 @@
 # slock 1.7 + upstream git 65cb721 + Abyss config (patches/)
 pkgname=abyss-slock
 version=1.7
-revision=1
+revision=2
 _gitrev=65cb721
 wrksrc="slock-${version}"
 hostmakedepends="pkg-config"
