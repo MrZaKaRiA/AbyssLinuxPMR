@@ -52,6 +52,7 @@ jobs:
           ABYSS_IMG="$PWD/srcpkgs/abyss-desktop/files/bin/img" ABYSS_APPS="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-apps" ABYSS_IMAGES_DESKTOP="$PWD/srcpkgs/abyss-desktop/files/abyss-images.desktop" python3 tests/test_image_launcher.py
           ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" python3 tests/test_app_shortcuts.py
           ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" python3 tests/test_text_size.py
+          ABYSS_CURSOR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-cursor" python3 tests/test_cursor.py
           ABYSS_ROFI_REPAIR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-rofi-repair" python3 tests/test_rofi_repair.py
           ABYSS_THUNAR_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-thunar-init" python3 tests/test_thunar_init.py
           ABYSS_CHOOSER_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-file-chooser-init" python3 tests/test_file_chooser_init.py
@@ -65,6 +66,7 @@ jobs:
           grep -Fx 'exec /usr/bin/abyss-shortcuts "$@"' /usr/local/bin/abyss-shortcuts
           grep -Fx 'exec /usr/bin/abyss-welcome "$@"' /usr/local/bin/abyss-welcome
           tests/shortcuts-x11.sh
+          xvfb-run -a -s '-screen 0 1024x768x24 -noreset' python3 tests/slock-x11.py
           cc -std=c99 -Wall -Wextra tests/zenity-luminance.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-zenity-luminance
           ABYSS_SESSION="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-session" LUMINANCE=/tmp/abyss-zenity-luminance xvfb-run -a dbus-run-session -- tests/zenity-dark-x11.sh
 
