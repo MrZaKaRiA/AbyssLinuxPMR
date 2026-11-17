@@ -58,6 +58,7 @@ jobs:
           ABYSS_ROFI_REPAIR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-rofi-repair" python3 tests/test_rofi_repair.py
           ABYSS_THUNAR_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-thunar-init" python3 tests/test_thunar_init.py
           ABYSS_CHOOSER_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-file-chooser-init" python3 tests/test_file_chooser_init.py
+          ABYSS_SOFTWARE="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-software" ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" ABYSS_SETUP="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-setup" python3 tests/test_software_packages.py
           cc -std=c99 -Wall -Wextra tests/dialog-window.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-dialog-window-test
           cc -std=c99 -Wall -Wextra -Wno-unused-function tests/shortcut-config.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-shortcut-config-test
           /tmp/abyss-shortcut-config-test
