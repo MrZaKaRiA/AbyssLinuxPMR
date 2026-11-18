@@ -135,22 +135,175 @@ scrollbar slider:hover, scrollbar slider:active { background-color: #a855f7; }
   -gtk-icon-effect: none;
 }
 
-/* LightDM GTK greeter: keep its user picker and password entry readable.
- * These IDs are only present in the greeter, so regular GTK apps are unchanged.
- */
-#login_window #user_combobox {
-  min-width: 22em;
+/* LightDM GTK greeter (the login screen). Only the greeter has these widget
+ * names, so other GTK apps are unchanged. Sizes are in em: they follow the
+ * display scale (Xft.dpi from abyss-scale, merged before the greeter starts),
+ * so the screen looks the same at 100% and at 200%.
+ * The colour below tells the greeter to rank its own fallback CSS under this. */
+@define-color lightdm-gtk-greeter-override-defaults #a855f7;
+
+/* top line: no bar, just the clock and indicators over the picture */
+#panel_window,
+#panel_window.background,
+#panel_window menubar {
+  background-color: transparent;
+  background-image: none;
+  border: none;
+  box-shadow: none;
 }
-#login_window .entry {
-  min-width: 22em;
-  min-height: 2.2em;
-  padding: 0.35em 0.7em;
+#panel_window menubar { padding: 0.35em 0.7em; }
+#panel_window menubar > menuitem {
+  color: #f3e8ff;
+  text-shadow: 0 1px 3px alpha(black, 0.9);
+  -gtk-icon-shadow: 0 1px 3px alpha(black, 0.9);
+  padding: 0.3em 0.75em;
+  border-radius: 0.6em;
+  min-height: 0;
 }
-#login_window .button {
-  min-width: 8em;
-  min-height: 2em;
-  padding: 0.35em 0.8em;
+#panel_window menubar > menuitem:hover,
+#panel_window menubar > menuitem.panel-item-hovered {
+  background-color: alpha(#f3e8ff, 0.16);
+  box-shadow: none;
+  color: #ffffff;
 }
+#panel_window menubar > separator { background-color: transparent; }
+/* The greeter draws these icons at a fixed 16 px, which is tiny at 200%:
+ * hide its image and draw the same icon as a background sized in em. */
+#power_menuitem > image,
+#a11y_menuitem > image {
+  opacity: 0;
+  min-width: 1.15em;
+  min-height: 1.15em;
+}
+#power_menuitem,
+#a11y_menuitem {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 1.15em 1.15em;
+}
+#power_menuitem { background-image: -gtk-icontheme("system-shutdown-symbolic"); }
+#a11y_menuitem { background-image: -gtk-icontheme("preferences-desktop-accessibility-symbolic"); }
+#clock_menuitem { font-weight: 600; }
+#layout_menuitem > label {
+  border: 1px solid alpha(#f3e8ff, 0.75);
+  border-radius: 0.35em;
+  padding: 0 0.35em;
+  background-color: transparent;
+}
+
+/* the login card */
+#login_window,
+#power_window {
+  background-color: alpha(#0d0b18, 0.82);
+  background-image: none;
+  border: 1px solid alpha(#a855f7, 0.38);
+  border-radius: 1.1em;
+  box-shadow: none;
+}
+#login_window #content_frame,
+#login_window #buttonbox_frame,
+#power_window #content_frame,
+#power_window #buttonbox_frame {
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+}
+#login_window frame > border,
+#power_window frame > border { border: none; }
+#login_window #content_frame { padding: 0.5em 0.7em 0 0.7em; }
+#login_window #buttonbox_frame { padding: 0.2em 0.7em 0.5em 0.7em; }
+#power_window #content_frame { padding: 0.6em 0.8em 0.2em 0.8em; }
+#power_window #buttonbox_frame { padding: 0.2em 0.8em 0.6em 0.8em; }
+
+/* the user: a large name rather than a dropdown box */
+#login_window #user_combobox { min-width: 18em; }
+#login_window #user_combobox button {
+  background-color: transparent;
+  background-image: none;
+  border: none;
+  box-shadow: none;
+  color: #f3e8ff;
+  font-size: 1.45em;
+  font-weight: 600;
+  padding: 0.1em 0.25em;
+  border-radius: 0.5em;
+}
+#login_window #user_combobox button:hover { background-color: alpha(#f3e8ff, 0.08); }
+#login_window #user_combobox arrow {
+  color: alpha(#f3e8ff, 0.55);
+  -gtk-icon-source: -gtk-icontheme("pan-down-symbolic");
+  min-width: 0.75em;
+  min-height: 0.75em;
+}
+
+/* password (and user name, when typed) */
+#login_window entry {
+  min-width: 18em;
+  min-height: 2.4em;
+  padding: 0 0.85em;
+  border-radius: 0.7em;
+  border: 1px solid alpha(#f3e8ff, 0.18);
+  background-color: alpha(#f3e8ff, 0.07);
+  background-image: none;
+  color: #f3e8ff;
+  caret-color: #c084fc;
+  box-shadow: none;
+}
+#login_window entry:focus {
+  border-color: #a855f7;
+  box-shadow: inset 0 0 0 1px #a855f7;
+}
+#login_window entry placeholder { color: alpha(#f3e8ff, 0.45); }
+
+/* buttons: Log In / the power action in Abyss purple */
+#login_window #login_button,
+#power_window #power_ok_button {
+  background-color: #a855f7;
+  background-image: none;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.7em;
+  box-shadow: none;
+  text-shadow: none;
+  min-height: 2.3em;
+  padding: 0 1.6em;
+  font-weight: 600;
+}
+#login_window #login_button:hover,
+#power_window #power_ok_button:hover { background-color: #b46ef9; }
+#login_window #login_button:active,
+#power_window #power_ok_button:active { background-color: #9333ea; }
+#login_window #login_button:disabled { background-color: alpha(#a855f7, 0.4); color: alpha(#ffffff, 0.7); }
+#login_window #cancel_button,
+#power_window #cancel_button {
+  background-color: alpha(#f3e8ff, 0.08);
+  background-image: none;
+  color: #f3e8ff;
+  border: none;
+  border-radius: 0.7em;
+  box-shadow: none;
+  min-height: 2.3em;
+  padding: 0 1.2em;
+}
+#login_window #cancel_button:hover,
+#power_window #cancel_button:hover { background-color: alpha(#f3e8ff, 0.16); }
+
+/* messages (e.g. a wrong password) */
+#greeter_infobar,
+#greeter_infobar > revealer > box {
+  background-color: transparent;
+  background-image: none;
+  border: none;
+  box-shadow: none;
+}
+#greeter_infobar > revealer > box { margin: 0.3em 1.4em 0 1.4em; padding: 0.3em 0.6em; }
+#greeter_infobar.error > revealer > box,
+#greeter_infobar.warning > revealer > box {
+  background-color: alpha(#be123c, 0.28);
+  border-radius: 0.6em;
+}
+#greeter_infobar label { color: #fecdd3; }
+#greeter_infobar.info label { color: #e9d5ff; }
 
 /* Thunar: a distinct places pane, roomier navigation, and a visible divider. */
 .thunar .shortcuts-pane,
