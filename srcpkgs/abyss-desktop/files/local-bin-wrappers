@@ -22,10 +22,10 @@
 #   --print CMD  print the wrapper for CMD
 #
 # Keep COMMANDS equal to files/bin plus abyss-key-capture (tests check it).
-COMMANDS='abyss-apps abyss-control-center abyss-cursor abyss-display abyss-display-setup
+COMMANDS='abyss-apps abyss-bar abyss-control-center abyss-cursor abyss-display abyss-display-setup
 abyss-file-chooser-init abyss-installer abyss-key-capture abyss-keyboard abyss-launcher
-abyss-power abyss-priv abyss-record abyss-rofi-repair abyss-screenshot abyss-session
-abyss-setup abyss-shortcut-editor abyss-shortcuts abyss-software abyss-thunar-init
+abyss-power abyss-priv abyss-record abyss-rofi-repair abyss-scale abyss-screenshot
+abyss-session abyss-setup abyss-shortcut-editor abyss-shortcuts abyss-software abyss-thunar-init
 abyss-wallpaper abyss-wallpapers abyss-welcome dmenu-ssh dwm-statusbar img'
 
 # Names INSTALL's pre step found as unedited image copies (identical to the
