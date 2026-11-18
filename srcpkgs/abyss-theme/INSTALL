@@ -1,0 +1,32 @@
+#!/bin/sh
+# Hand the login screen's look back to this package on installed systems.
+case "$ACTION" in
+post)
+	# Images up to 27.3.x copied the Abyss greeter settings into lightdm's
+	# main config. The greeter reads that file last, so it hid every change
+	# to lightdm-gtk-greeter.conf.d/50-abyss.conf. A copy identical to one
+	# the image shipped is not a local edit: make it a stub. Edited files
+	# are left alone.
+	f=etc/lightdm/lightdm-gtk-greeter.conf
+	if [ -f "$f" ]; then
+		case "$(sha256sum < "$f" 2>/dev/null | cut -d' ' -f1)" in
+		9810291912545c7f893f9a701c4bc80a5010ab0f129d8d1c8ee4d4cf1bc27370|\
+		8c40da8f71e84cb2d5c32cfb9cb99809eb8b30cc08d3ebd62b0fd65a3bfad37d)
+			cat > "$f" <<'EOF'
+# LightDM GTK greeter: local settings only. The greeter reads this file after
+# lightdm-gtk-greeter.conf.d/*.conf, so a key here replaces the Abyss default
+# in lightdm-gtk-greeter.conf.d/50-abyss.conf (abyss-theme).
+[greeter]
+EOF
+			echo "abyss-theme: login screen settings now come from /$f.d/50-abyss.conf"
+			;;
+		esac
+	fi
+	# Same for the greeter user's GTK CSS (it outranks the theme).
+	f=var/lib/lightdm/.config/gtk-3.0/gtk.css
+	if [ -f "$f" ] && [ "$(sha256sum < "$f" 2>/dev/null | cut -d' ' -f1)" = \
+		4969072d01edcdb6ae66fc444e72e3b555fef3acfedf44b16b50b788eb89b7e1 ]; then
+		printf '/* Login screen look: the Abyss GTK theme (abyss-theme). Local CSS here wins. */\n' > "$f"
+	fi
+	;;
+esac

@@ -6,8 +6,8 @@
 #   rendered by files/backgrounds/make-abyss-orbit.py, which is not installed).
 pkgname=abyss-theme
 version=1.0
-revision=5
-depends="papirus-icon-theme xdg-user-dirs"
+revision=6
+depends="papirus-icon-theme xdg-user-dirs font-inter"
 short_desc="Abyss Linux dark GTK theme and violet folder icons"
 maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
 license="MIT"
