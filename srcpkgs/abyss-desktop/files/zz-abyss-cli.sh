@@ -8,26 +8,33 @@
 # ==============================================================================
 
 # 1. Interactive shell guard — never affect non-interactive scripts or Makefiles
+# (except the single root process the package helpers start: see __abyss_as_root).
 case $- in
     *i*) ;;
-    *) return ;;
+    *) [ "${__abyss_root_step:-}" = 1 ] || return ;;
 esac
 
-# Login shells load this file more than once (/etc/profile, then ~/.bashrc);
-# add each directory only once.
-case ":${PATH}:" in
-    *":${HOME}/.local/bin:"*) ;;
-    *) PATH="${HOME}/.local/bin:${PATH}" ;;
-esac
-case ":${PATH}:" in
-    *":/usr/local/bin:"*) ;;
-    *) PATH="/usr/local/bin:${PATH}" ;;
-esac
-export PATH
-if command -v code >/dev/null 2>&1; then
-    export EDITOR="code --wait" VISUAL="code --wait"
-else
-    export EDITOR=vi VISUAL=vi
+# This file, by absolute path, so that root process can load the helpers.
+__abyss_cli_file=${BASH_SOURCE:-/etc/profile.d/zz-abyss-cli.sh}
+case $__abyss_cli_file in /*) ;; *) __abyss_cli_file="$PWD/$__abyss_cli_file" ;; esac
+
+if [ "${__abyss_root_step:-}" != 1 ]; then
+    # Login shells load this file more than once (/etc/profile, then ~/.bashrc);
+    # add each directory only once.
+    case ":${PATH}:" in
+        *":${HOME}/.local/bin:"*) ;;
+        *) PATH="${HOME}/.local/bin:${PATH}" ;;
+    esac
+    case ":${PATH}:" in
+        *":/usr/local/bin:"*) ;;
+        *) PATH="/usr/local/bin:${PATH}" ;;
+    esac
+    export PATH
+    if command -v code >/dev/null 2>&1; then
+        export EDITOR="code --wait" VISUAL="code --wait"
+    else
+        export EDITOR=vi VISUAL=vi
+    fi
 fi
 
 # Run a command as root: directly when the shell already is root (doas only
@@ -50,24 +57,42 @@ __abyss_xbps_busy() {
     pgrep -x xbps-install >/dev/null 2>&1 || pgrep -x xbps-remove >/dev/null 2>&1
 }
 
-# Update the package lists; retry network errors twice before explaining.
-update() {
+# Run a whole package step (lock wait, sync with retries, then the action) as
+# root in ONE privileged process, so the password is asked once. doas only
+# remembers a password for later doas calls from the same parent process, and
+# the old helpers ran the sync from a pipeline subshell, so it asked twice.
+__abyss_as_root() {  # __abyss_as_root update|upgrade|install [ARGS...]
+    local step=$1 mark rc
+    shift
+    if [ "$(id -u)" -eq 0 ]; then "__abyss_root_$step" "$@"; return; fi
+    # The root process removes the marker first: if it is still there, the
+    # privilege tool refused (wrong password) and nothing ran.
+    mark=$(mktemp "${TMPDIR:-/tmp}/abyss-elevate.XXXXXX") || return 1
+    abyss_priv /bin/sh -c '__abyss_root_step=1; rm -f "$1"; ABYSS_RETRY_PAUSE=$2 ABYSS_LOCK_POLL=$3; . "$4" || exit 1; step=$5; shift 5; "__abyss_root_$step" "$@"' \
+        sh "$mark" "${ABYSS_RETRY_PAUSE:-5}" "${ABYSS_LOCK_POLL:-2}" "$__abyss_cli_file" "$step" "$@"
+    rc=$?
+    if [ -e "$mark" ]; then
+        rm -f "$mark"
+        echo "This needs your password (doas or sudo); nothing was changed." >&2
+        return 1
+    fi
+    return "$rc"
+}
+
+# Update the package lists (as root); retry network errors twice before explaining.
+__abyss_sync() {
     local try=1 log rc
     log=$(mktemp) || return 1
-    __abyss_xbps_wait
     while :; do
         # Stream the output (xbps may ask to import a repository key).
-        { abyss_priv xbps-install -S; echo $? >"$log.rc"; } 2>&1 | tee "$log"
+        { xbps-install -S; echo $? >"$log.rc"; } 2>&1 | tee "$log"
         rc=$(cat "$log.rc" 2>/dev/null || echo 1); rm -f "$log.rc"
         if [ "$rc" -eq 0 ] && ! grep -q ERROR "$log"; then rm -f "$log"; return 0; fi
-        grep -qiE 'authentication failed|not permitted' "$log" && break
         [ "$try" -lt 3 ] || break
         echo "A package server could not be reached; trying again in ${ABYSS_RETRY_PAUSE:-5}s..." >&2
         sleep "${ABYSS_RETRY_PAUSE:-5}"; try=$((try + 1))
     done
-    if grep -qiE 'authentication failed|not permitted' "$log"; then
-        echo "Updating the package lists needs your password." >&2
-    elif grep -qiE 'resolv|name or service' "$log"; then
+    if grep -qiE 'resolv|name or service' "$log"; then
         echo "The package servers could not be found (DNS). Check your network connection, then run: update" >&2
     else
         echo "The package lists could not be updated. Check your network connection, then run: update" >&2
@@ -76,10 +101,62 @@ update() {
     return 1
 }
 
-upgrade() {
-    update || echo "Upgrading with the package lists already on this computer." >&2
+__abyss_root_update() {
     __abyss_xbps_wait
-    abyss_priv xbps-install -u "$@"
+    __abyss_sync && echo "Package lists updated."
+}
+
+# Upgrade, then say what happened: xbps prints nothing when there is nothing
+# to do. The package database (before/after) tells what really changed.
+__abyss_root_upgrade() {
+    local log rc changed
+    __abyss_xbps_wait
+    __abyss_sync || echo "Upgrading with the package lists already on this computer." >&2
+    __abyss_xbps_wait
+    log=$(mktemp) || return 1
+    xbps-query -l 2>/dev/null | awk '{ print $2 }' >"$log.before"
+    { xbps-install -u "$@"; echo $? >"$log.rc"; } 2>&1 | tee "$log"
+    rc=$(cat "$log.rc" 2>/dev/null || echo 1)
+    # name-version of every package that is new or changed, "(new)" when it
+    # was not installed before.
+    xbps-query -l 2>/dev/null | awk '{ print $2 }' >"$log.after"
+    changed=$(awk 'function name(p) { sub(/-[^-]*$/, "", p); return p }
+        FILENAME == ARGV[1] { had[$1] = 1; was[name($1)] = 1; next }
+        !($1 in had) { print "  " $1 ((name($1) in was) ? "" : " (new)") }' "$log.before" "$log.after")
+    echo
+    if [ "$rc" -ne 0 ]; then
+        if grep -q "package must be updated" "$log"; then
+            echo "The package manager must be updated first: run 'upgrade xbps', then 'upgrade' again." >&2
+        else
+            echo "The upgrade did not finish (xbps-install exit $rc); see the messages above." >&2
+        fi
+    elif [ -n "$changed" ]; then
+        echo "Updated $(printf '%s\n' "$changed" | grep -c .) package(s):"
+        printf '%s\n' "$changed"
+    elif grep -q Aborting "$log"; then
+        echo "Nothing was updated."
+    elif [ "$#" -gt 0 ]; then
+        echo "Already up to date: $*"
+    else
+        echo "System is up to date."
+    fi
+    rm -f "$log" "$log.rc" "$log.before" "$log.after"
+    return "$rc"
+}
+
+__abyss_root_install() {
+    __abyss_xbps_wait
+    __abyss_sync || echo "Continuing with the package lists already on this computer." >&2
+    __abyss_xbps_wait
+    xbps-install "$@"
+}
+
+update() {
+    __abyss_as_root update
+}
+
+upgrade() {
+    __abyss_as_root upgrade "$@"
 }
 
 search() {
@@ -124,10 +201,11 @@ install() {
         return $?
     fi
 
-    update || echo "Continuing with the package lists already on this computer." >&2
-    __abyss_xbps_wait
-    abyss_priv xbps-install "$@"
+    __abyss_as_root install "$@"
 }
+
+# The root process (__abyss_as_root) needs only the package helpers above.
+[ "${__abyss_root_step:-}" = 1 ] && return 0
 
 # 3. Searchable dmenu package browser
 pkg-ui() {
