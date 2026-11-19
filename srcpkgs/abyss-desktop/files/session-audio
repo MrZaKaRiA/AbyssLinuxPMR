@@ -1,0 +1,97 @@
+#!/bin/sh
+# ==============================================================================
+# session-audio - PipeWire for the desktop session (abyss-desktop)
+#   session-audio start   start pipewire, wireplumber and pipewire-pulse for
+#                         this session, unless it runs them already
+#   session-audio stop    end them at logout, if this session started them
+# abyss-session runs both (LightDM logins); ~/.xinitrc runs start (startx).
+# Does nothing until the user installs audio support.
+#
+# Logging out of dwm does not end them: pipewire and pipewire-pulse outlived
+# the session (wireplumber quit with its session bus), and elogind removed
+# /run/user/UID with their socket. The next login found a pipewire running
+# and started none, so wpctl could not connect and the bar had no volume.
+# `start` therefore keeps running ones only when they belong to this session
+# (its runtime directory and session bus, and a live socket), and replaces
+# them otherwise.
+# ==============================================================================
+PROC="${ABYSS_PROC_DIR:-/proc}"
+NAMES="pipewire wireplumber pipewire-pulse"
+
+command -v pipewire >/dev/null 2>&1 || exit 0
+uid=$(id -u)
+if [ -z "${XDG_RUNTIME_DIR:-}" ] || [ ! -w "$XDG_RUNTIME_DIR" ]; then
+    XDG_RUNTIME_DIR="/tmp/runtime-$uid"
+    mkdir -p -m 0700 "$XDG_RUNTIME_DIR" 2>/dev/null || :
+    export XDG_RUNTIME_DIR
+fi
+SOCKET="$XDG_RUNTIME_DIR/pipewire-0"
+
+installed() { command -v "$1" >/dev/null 2>&1; }
+running() { pgrep -u "$uid" -x "$1" 2>/dev/null; }
+
+# PID was started for this session: the same runtime directory and bus
+ours() {
+    env=$(tr '\0' '\n' < "$PROC/$1/environ" 2>/dev/null) || return 1
+    printf '%s\n' "$env" | grep -qxF "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR" || return 1
+    [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] ||
+        printf '%s\n' "$env" | grep -qxF "DBUS_SESSION_BUS_ADDRESS=$DBUS_SESSION_BUS_ADDRESS"
+}
+
+# every installed part runs, for this session, and pipewire listens
+healthy() {
+    [ -S "$SOCKET" ] || return 1
+    for n in $NAMES; do
+        installed "$n" || continue
+        pids=$(running "$n") || return 1
+        for p in $pids; do ours "$p" || return 1; done
+    done
+}
+
+any_running() {
+    for n in $NAMES; do running "$n" >/dev/null && return 0; done
+    return 1
+}
+
+# the user's pipewire, wireplumber and pipewire-pulse, whichever session
+# started them
+stop_all() {
+    any_running || return 0
+    for n in $NAMES; do pkill -u "$uid" -x "$n" 2>/dev/null; done
+    i=0
+    while [ $i -lt 30 ] && any_running; do sleep 0.1; i=$((i + 1)); done
+    if any_running; then
+        for n in $NAMES; do pkill -KILL -u "$uid" -x "$n" 2>/dev/null; done
+    fi
+}
+
+start() {
+    healthy && return 0
+    stop_all
+    # a socket left behind is not pipewire's answer: wait for the new one
+    running pipewire >/dev/null || rm -f "$SOCKET" "$SOCKET-manager"
+    pipewire &
+    i=0
+    while [ $i -lt 50 ] && [ ! -S "$SOCKET" ]; do sleep 0.1; i=$((i + 1)); done
+    for n in wireplumber pipewire-pulse; do
+        installed "$n" && "$n" &
+    done
+    # until they run, so a second `start` (~/.xinitrc after abyss-session)
+    # finds them
+    i=0
+    while [ $i -lt 30 ] && ! healthy; do sleep 0.1; i=$((i + 1)); done
+    return 0
+}
+
+stop() {
+    for p in $(running pipewire); do
+        ours "$p" && { stop_all; return 0; }
+    done
+    return 0
+}
+
+case "${1:-start}" in
+start) start ;;
+stop) stop ;;
+*) echo "usage: ${0##*/} start|stop" >&2; exit 2 ;;
+esac
