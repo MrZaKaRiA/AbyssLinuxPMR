@@ -4,7 +4,10 @@
 #   session-audio start   start pipewire, wireplumber and pipewire-pulse for
 #                         this session, unless it runs them already
 #   session-audio stop    end them at logout, if this session started them
-# abyss-session runs both (LightDM logins); ~/.xinitrc runs start (startx).
+#   session-audio now     start them for the desktop session the caller runs
+#                         in, right after audio support was installed
+# abyss-session runs start and stop (LightDM logins); ~/.xinitrc runs start
+# (startx); abyss-software and the `install` shell helper run now.
 # Does nothing until the user installs audio support.
 #
 # Logging out of dwm does not end them: pipewire and pipewire-pulse outlived
@@ -20,6 +23,33 @@ NAMES="pipewire wireplumber pipewire-pulse"
 
 command -v pipewire >/dev/null 2>&1 || exit 0
 uid=$(id -u)
+
+# Installing audio support in a running session started nothing until the
+# next login: no sound, no volume in the bar, and the mixer said "Connection
+# to PulseAudio failed". `now` starts it at once, for a user's graphical
+# session only (never for root, nor a shell without the session's DISPLAY
+# and runtime directory). It runs start with the caller's environment, so
+# the processes carry this session's runtime directory and bus, and `stop`
+# at logout ends them like the ones started at login. Detached (setsid, no
+# terminal): closing the install terminal must not hang them up.
+if [ "${1:-}" = now ]; then
+    [ "$uid" != 0 ] && [ -n "${DISPLAY:-}" ] && [ -n "${XDG_RUNTIME_DIR:-}" ] &&
+        [ -d "$XDG_RUNTIME_DIR" ] || exit 0
+    if command -v setsid >/dev/null 2>&1; then
+        setsid -w /bin/sh "$0" start </dev/null >/dev/null 2>&1
+    else
+        /bin/sh "$0" start </dev/null >/dev/null 2>&1
+    fi
+    # the bar shows the volume at once
+    command -v abyss-bar >/dev/null 2>&1 && abyss-bar --refresh >/dev/null 2>&1
+    if [ -S "$XDG_RUNTIME_DIR/pipewire-0" ]; then
+        echo 'Sound is on for this session (PipeWire is running).'
+    else
+        echo 'PipeWire did not start; it starts at the next login.'
+    fi
+    exit 0
+fi
+
 if [ -z "${XDG_RUNTIME_DIR:-}" ] || [ ! -w "$XDG_RUNTIME_DIR" ]; then
     XDG_RUNTIME_DIR="/tmp/runtime-$uid"
     mkdir -p -m 0700 "$XDG_RUNTIME_DIR" 2>/dev/null || :
@@ -93,5 +123,5 @@ stop() {
 case "${1:-start}" in
 start) start ;;
 stop) stop ;;
-*) echo "usage: ${0##*/} start|stop" >&2; exit 2 ;;
+*) echo "usage: ${0##*/} start|stop|now" >&2; exit 2 ;;
 esac
