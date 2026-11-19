@@ -78,6 +78,7 @@ __abyss_as_root() {  # __abyss_as_root update|upgrade|install [ARGS...]
         echo "This needs your password (doas or sudo); nothing was changed." >&2
         return 1
     fi
+    [ "$step" != install ] || __abyss_audio_now "$@"
     return "$rc"
 }
 
@@ -145,6 +146,19 @@ __abyss_root_upgrade() {
     rm -f "$log" "$log.rc" "$log.before" "$log.after"
     [ "$rc" -ne 0 ] || __abyss_clean_cache
     return "$rc"
+}
+
+# `install pipewire` (or wireplumber, pipewire-pulse) in a desktop session:
+# start PipeWire for that session now instead of at the next login
+# (session-audio checks for a user's graphical session).
+__abyss_audio_now() {
+    local audio=${ABYSS_SESSION_AUDIO:-/usr/libexec/abyss-desktop/session-audio} pkg
+    for pkg in "$@"; do
+        case $pkg in
+            pipewire|wireplumber|pipewire-pulse) [ ! -x "$audio" ] || "$audio" now; return 0 ;;
+        esac
+    done
+    return 0
 }
 
 __abyss_root_install() {
