@@ -130,9 +130,15 @@ mkdir -p "$HOME/.local/share/backgrounds" 2>/dev/null
 [ -x "$AUDIO" ] && "$AUDIO" start
 # The session ends when the file's `exec dwm` returns; its PipeWire ends with
 # it instead of lingering into the next login.
+# A stop signal for the session (LightDM ending it) goes on to the desktop.
 run_session() {
-    /bin/sh "$1"
+    /bin/sh "$1" <&0 &
+    child=$!
+    trap 'kill -TERM "$child" 2>/dev/null' TERM HUP INT
+    wait "$child"
     status=$?
+    while kill -0 "$child" 2>/dev/null; do wait "$child"; status=$?; done
+    trap - TERM HUP INT
     [ -x "$AUDIO" ] && "$AUDIO" stop
     exit $status
 }
