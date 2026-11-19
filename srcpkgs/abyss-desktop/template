@@ -31,6 +31,11 @@ do_install() {
 	vinstall ${FILESDIR}/disk-care 755 usr/libexec/abyss-desktop
 	vsv abyss-fstrim
 	vinstall ${FILESDIR}/abyss-images.desktop 644 usr/share/applications
+	# GnuPG's passphrase window (the Passwords menu's pinentry-program):
+	# pinentry-gtk-2 with Abyss dark GTK 2 colours
+	vinstall ${FILESDIR}/pinentry 755 usr/libexec/abyss-desktop
+	vmkdir usr/share/abyss/gtk-2.0
+	vinstall ${FILESDIR}/gtk2-dark.gtkrc 644 usr/share/abyss/gtk-2.0 gtkrc
 	# Interactive shell helpers (update, upgrade, install, ...). Not a
 	# conf_file on purpose: it is code that every update must be able to fix;
 	# local changes belong in ~/.bashrc. INSTALL migrates the old copy.

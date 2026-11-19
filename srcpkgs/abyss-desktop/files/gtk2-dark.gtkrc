@@ -1,0 +1,39 @@
+# Abyss dark colours for the GTK 2 programs Abyss starts itself (GnuPG's
+# passphrase window, pinentry-gtk-2, through /usr/libexec/abyss-desktop/
+# pinentry). GTK 2 cannot use the GTK 3 Abyss theme (abyss-theme); these are
+# its colours, drawn by GTK 2's built-in engine, so no theme engine is needed.
+gtk-font-name = "Sans 10"
+gtk-icon-theme-name = "Abyss"
+
+style "abyss-dark" {
+    bg[NORMAL]        = "#16121f"
+    bg[PRELIGHT]      = "#2a2340"
+    bg[ACTIVE]        = "#100d18"
+    bg[SELECTED]      = "#a855f7"
+    bg[INSENSITIVE]   = "#16121f"
+    fg[NORMAL]        = "#f3e8ff"
+    fg[PRELIGHT]      = "#f3e8ff"
+    fg[ACTIVE]        = "#f3e8ff"
+    fg[SELECTED]      = "#090514"
+    fg[INSENSITIVE]   = "#7d7291"
+    base[NORMAL]      = "#0d0b18"
+    base[PRELIGHT]    = "#1d1829"
+    base[ACTIVE]      = "#3b2a5c"
+    base[SELECTED]    = "#a855f7"
+    base[INSENSITIVE] = "#16121f"
+    text[NORMAL]      = "#f3e8ff"
+    text[PRELIGHT]    = "#f3e8ff"
+    text[ACTIVE]      = "#f3e8ff"
+    text[SELECTED]    = "#090514"
+    text[INSENSITIVE] = "#7d7291"
+}
+
+style "abyss-dark-button" {
+    bg[NORMAL]   = "#241d33"
+    bg[PRELIGHT] = "#33294a"
+    bg[ACTIVE]   = "#a855f7"
+    fg[ACTIVE]   = "#090514"
+}
+
+class "GtkWidget" style "abyss-dark"
+class "GtkButton" style "abyss-dark-button"
