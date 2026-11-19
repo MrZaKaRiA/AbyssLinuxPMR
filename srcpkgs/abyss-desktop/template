@@ -2,7 +2,7 @@
 # Abyss desktop menus and lightweight helpers, updated through the signed PMR.
 pkgname=abyss-desktop
 version=1.0
-revision=39
+revision=40
 makedepends="libX11-devel"
 # chrony: time synchronisation (INSTALL enables chronyd once per system)
 # xkb-switch: the status bar's keyboard menu switches layouts with it
@@ -26,6 +26,10 @@ do_install() {
 	done
 	# Writes the /usr/local/bin wrappers (INSTALL, and the ISO build)
 	vinstall ${FILESDIR}/local-bin-wrappers 755 usr/libexec/abyss-desktop
+	# Disk upkeep: cleans the package cache after installs and upgrades, and
+	# runs the abyss-fstrim service (weekly TRIM; INSTALL enables it once)
+	vinstall ${FILESDIR}/disk-care 755 usr/libexec/abyss-desktop
+	vsv abyss-fstrim
 	vinstall ${FILESDIR}/abyss-images.desktop 644 usr/share/applications
 	# Interactive shell helpers (update, upgrade, install, ...). Not a
 	# conf_file on purpose: it is code that every update must be able to fix;

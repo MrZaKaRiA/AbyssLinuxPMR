@@ -190,6 +190,8 @@ run_install() {
         if [ -n "$update" ]; then echo "Updating:$ok"; else echo "Installing:$ok"; fi
         wait_for_xbps
         abyss-priv xbps-install $yes $update $ok; status=$?
+        # drop replaced package versions from the cache (says what it freed)
+        [ "$status" -ne 0 ] || [ ! -x "${ABYSS_DISK_CARE:=/usr/libexec/abyss-desktop/disk-care}" ] || "$ABYSS_DISK_CARE" clean-cache
     fi
     # Trust the package database, not the exit status: answering "n" at the
     # xbps prompt exits 0 without installing anything.
