@@ -1,0 +1,112 @@
+#!/bin/sh
+# abyss-boot: a clean start on systems installed from older Abyss images, and
+# the Abyss splash for plymouth.
+case "$ACTION" in
+post)
+	# /etc/default/grub belongs to no package: the Abyss image wrote it.
+	# Change only lines an Abyss image shipped that still have the shipped
+	# value; anything the user edited stays as it is.
+	#  - GRUB_BACKGROUND: the galaxy picture (shown behind "Loading Linux")
+	#    gives way to the logo from /etc/grub.d/05_abyss_splash
+	#  - GRUB_GFXMODE: "auto" keeps the mode the firmware already uses (the
+	#    screen's own), so the picture is not resized and nothing flickers
+	#  - kernel line: "splash" (27.0 had none) and plymouth drawing on the
+	#    screen even when the machine also has a serial console (virtual
+	#    machines usually do)
+	f=etc/default/grub
+	cmdline='quiet splash loglevel=3 rd.udev.log_level=3 udev.log_level=3 vt.global_cursor_default=0'
+	cmdline_27_0='quiet loglevel=3 rd.udev.log_level=3 udev.log_level=3'
+	if [ -f "$f" ] && [ ! -L "$f" ]; then
+		tmp=$(mktemp etc/default/.grub.XXXXXX) && sed \
+			-e 's|^GRUB_BACKGROUND="/usr/share/backgrounds/abyss/abyss-splash.png"$|# The Abyss logo on black comes from /etc/grub.d/05_abyss_splash (abyss-boot);\n# a GRUB_BACKGROUND or GRUB_THEME here replaces it.\n#GRUB_BACKGROUND=|' \
+			-e 's|^GRUB_GFXMODE=1920x1080,1024x768,auto$|GRUB_GFXMODE=auto|' \
+			-e "s#^GRUB_CMDLINE_LINUX_DEFAULT=\"\\($cmdline\\|$cmdline_27_0\\)\"\$#GRUB_CMDLINE_LINUX_DEFAULT=\"$cmdline plymouth.ignore-serial-consoles\"#" \
+			-e 's|^# quiet + splash: the Abyss plymouth splash, errors only\. Remove "quiet splash" to$|# quiet + splash: the Abyss logo (plymouth), errors only. Remove "quiet splash" to|' \
+			"$f" > "$tmp" && {
+			if cmp -s "$f" "$tmp"; then
+				rm -f "$tmp"
+			else
+				chmod 0644 "$tmp" && mv -f "$tmp" "$f" &&
+					echo "abyss-boot: /etc/default/grub: the Abyss logo instead of the galaxy picture"
+			fi
+		} || { [ -z "$tmp" ] || rm -f "$tmp"; echo "abyss-boot: /etc/default/grub left unchanged" >&2; }
+	fi
+
+	# Plymouth theme: the Abyss logo, unless the user picked another theme
+	# (Void's default is "spinner"; "abyss" is the unused theme old images
+	# carried).
+	if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+		case "$(plymouth-set-default-theme 2>/dev/null)" in
+		abyss-logo) ;;
+		""|spinner|abyss|text|details)
+			plymouth-set-default-theme abyss-logo >/dev/null 2>&1 ;;
+		esac
+	fi
+	# Pixel for pixel, like GRUB: plymouth's own HiDPI doubling would show the
+	# logo at another size than GRUB did a moment before (the theme already
+	# picks a bigger picture for bigger screens).
+	# The line goes after Theme=: plymouth-set-default-theme, and with it
+	# dracut's plymouth module, only see a Theme= that comes first in [Daemon].
+	conf=etc/plymouth/plymouthd.conf
+	if [ -f "$conf" ] && grep -q '^Theme=abyss-logo$' "$conf" && ! grep -q '^DeviceScale=' "$conf"; then
+		sed -i '/^Theme=abyss-logo$/a DeviceScale=1' "$conf"
+	fi
+
+	# A text login on tty1 shows "login:" between the boot logo and the login
+	# screen. Images since 27.3.2 enable LightDM and leave tty1 to it; older
+	# installs still start agetty-tty1. Remove that link once per system, and
+	# only while LightDM is enabled; tty2 to tty6 keep their text logins
+	# (Ctrl+Alt+F2). To undo: ln -s /etc/sv/agetty-tty1 /var/service/
+	stamp=var/lib/abyss-boot/tty1-left-to-lightdm
+	sv=etc/runit/runsvdir/default
+	if [ ! -e "$stamp" ] && [ -L "$sv/lightdm" ]; then
+		if [ -L "$sv/agetty-tty1" ] && [ -L "$sv/agetty-tty2" ]; then
+			rm -f "$sv/agetty-tty1" &&
+				echo "abyss-boot: tty1 is left to the login screen (text logins stay on tty2-tty6)"
+		fi
+		mkdir -p "${stamp%/*}" && : > "$stamp"
+	fi
+
+	# The rest only on the running, installed system: not while an image or
+	# another root is being built (no grub.cfg there yet; the installer
+	# writes it and the initramfs later, with everything above in place).
+	if [ "$(pwd -P)" = / ] && [ -f boot/grub/grub.cfg ]; then
+		# The picture for this screen and the GRUB menu that shows it.
+		# grub-mkconfig checks the new file before it replaces the old one:
+		# a failed run keeps the working grub.cfg.
+		usr/bin/abyss-boot-splash || :
+		if command -v grub-mkconfig >/dev/null 2>&1; then
+			if grub-mkconfig -o /boot/grub/grub.cfg >/dev/null 2>&1; then
+				echo "abyss-boot: GRUB menu updated (/boot/grub/grub.cfg)"
+			else
+				echo "abyss-boot: grub-mkconfig failed; the previous /boot/grub/grub.cfg is kept (run update-grub to retry)" >&2
+			fi
+		fi
+
+		# The splash starts in the initramfs: rebuild each kernel's once (and
+		# when the splash or its settings change), the way the kernel package
+		# does.
+		# Later kernels get it from their own initramfs hook.
+		if command -v dracut >/dev/null 2>&1 && ls -d usr/lib/dracut/modules.d/*plymouth >/dev/null 2>&1 &&
+			[ "$(plymouth-set-default-theme 2>/dev/null)" = abyss-logo ]; then
+			# (the initramfs carries the theme and plymouthd.conf)
+			sum=$(cat usr/share/plymouth/themes/abyss-logo/* etc/plymouth/plymouthd.conf 2>/dev/null | cksum | cut -d' ' -f1)
+			done_list=var/lib/abyss-boot/initramfs
+			mkdir -p "${done_list%/*}"
+			for img in boot/initramfs-*.img; do
+				[ -f "$img" ] || continue
+				kver=${img#boot/initramfs-}; kver=${kver%.img}
+				[ -d "usr/lib/modules/$kver" ] || continue
+				grep -qx "$kver $sum" "$done_list" 2>/dev/null && continue
+				echo "abyss-boot: adding the boot logo to the initramfs of Linux $kver ..."
+				if dracut -q --force "/$img" "$kver" >/dev/null 2>&1; then
+					{ grep -v "^$kver " "$done_list" 2>/dev/null; echo "$kver $sum"; } > "$done_list.tmp" &&
+						mv -f "$done_list.tmp" "$done_list"
+				else
+					echo "abyss-boot: dracut failed for Linux $kver; its initramfs is unchanged (run: xbps-reconfigure -f linux${kver%.*})" >&2
+				fi
+			done
+		fi
+	fi
+	;;
+esac

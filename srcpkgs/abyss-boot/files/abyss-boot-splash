@@ -1,0 +1,81 @@
+#!/bin/sh
+# ==============================================================================
+# abyss-boot-splash - the picture GRUB shows while the system starts: the Abyss
+# logo in the middle of a black screen (package abyss-boot).
+#
+#   abyss-boot-splash             make /boot/grub/abyss-splash.png for this
+#                                 screen, when the screen or the logo changed
+#   abyss-boot-splash --force     make it again anyway
+#   abyss-boot-splash --size WxH  make it for that resolution
+#
+# GRUB stretches its background to the whole screen, so the picture is made
+# at the screen's own resolution: the logo stays round and sharp. The size is
+# the preferred mode of the first connected display (a built-in panel first),
+# which is the mode GRUB_GFXMODE=auto starts in. /etc/grub.d/05_abyss_splash
+# shows it; the login screen (abyss-display-setup) runs this before every
+# login so a new monitor gets a new picture on the next boot.
+# Runs as root. Never fails its caller: without a picture GRUB stays black.
+# ==============================================================================
+GRUB_DIR="${ABYSS_GRUB_DIR:-/boot/grub}"
+SYSFS="${ABYSS_SYSFS:-/sys}"
+SHARE="${ABYSS_BOOT_SHARE:-/usr/share/abyss/boot}"
+RENDER="${ABYSS_SPLASH_RENDER:-/usr/libexec/abyss-boot/abyss-splash-render}"
+OUT="$GRUB_DIR/abyss-splash.png"
+ID="$GRUB_DIR/abyss-splash.id"
+
+force= size=
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --force) force=1 ;;
+        --size) size="${2:-}"; shift ;;
+        *) echo "usage: abyss-boot-splash [--force] [--size WIDTHxHEIGHT]" >&2; exit 2 ;;
+    esac
+    shift
+done
+
+# Preferred mode of the first connected display; eDP/LVDS/DSI (a laptop's own
+# panel) win over external outputs, like the firmware's choice.
+screen_size() {
+    first=
+    for c in "$SYSFS"/class/drm/card*-*; do
+        [ "$(cat "$c/status" 2>/dev/null)" = connected ] || continue
+        m=$(head -n 1 "$c/modes" 2>/dev/null)
+        m=${m%%[!0-9x]*}
+        case "$m" in [1-9]*x[1-9]*) ;; *) continue ;; esac
+        case "${c##*/}" in *-eDP-*|*-LVDS-*|*-DSI-*) echo "$m"; return ;; esac
+        [ -n "$first" ] || first=$m
+    done
+    if [ -z "$first" ] && read -r v < "$SYSFS/class/graphics/fb0/virtual_size" 2>/dev/null; then
+        first="${v%%,*}x${v#*,}"
+    fi
+    echo "${first:-1920x1080}"
+}
+
+[ -d "$GRUB_DIR" ] || exit 0
+[ -x "$RENDER" ] || exit 0
+[ -n "$size" ] || size=$(screen_size)
+w=${size%%x*} h=${size#*x}
+case "$w$h" in ''|*[!0-9]*) echo "abyss-boot-splash: bad size $size" >&2; exit 0 ;; esac
+
+# Logo size by screen height: about an eighth of it, from the PNGs rendered
+# from abyss-logo.svg (no scaling at boot, so it stays sharp).
+if [ "$h" -lt 1300 ]; then px=128
+elif [ "$h" -lt 1700 ]; then px=192
+elif [ "$h" -lt 2500 ]; then px=256
+else px=384; fi
+logo="$SHARE/abyss-logo-$px.png"
+[ -r "$logo" ] || exit 0
+
+want="${w}x${h} $(cksum < "$logo" | cut -d' ' -f1)"
+if [ -z "$force" ] && [ -s "$OUT" ] && [ "$(cat "$ID" 2>/dev/null)" = "$want" ]; then
+    exit 0
+fi
+
+tmp=$(mktemp "$GRUB_DIR/.abyss-splash.XXXXXX") || exit 0
+if "$RENDER" "$tmp" "$w" "$h" "$logo" && chmod 0644 "$tmp" && mv -f "$tmp" "$OUT"; then
+    printf '%s\n' "$want" > "$ID"
+else
+    rm -f "$tmp"
+    echo "abyss-boot-splash: could not write $OUT" >&2
+fi
+exit 0

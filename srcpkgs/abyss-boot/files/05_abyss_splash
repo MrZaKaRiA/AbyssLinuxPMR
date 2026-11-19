@@ -1,0 +1,59 @@
+#!/bin/sh
+set -e
+# grub-mkconfig helper (abyss-boot): a silent start with the Abyss logo.
+#
+# With the hidden menu (GRUB_TIMEOUT_STYLE=hidden) GRUB shows the Abyss logo
+# on black (/boot/grub/abyss-splash.png, made by abyss-boot-splash at the
+# screen's resolution) and boots without printing anything: the "Loading
+# Linux ..." lines of the boot entries are drawn black on black, so the logo
+# is all there is to see until Linux takes the screen over.
+# Hold Shift or press Esc during the timeout for the menu: it comes up with
+# the normal colours and no picture, and stays until you choose.
+#
+# Steps aside when /etc/default/grub sets GRUB_BACKGROUND or GRUB_THEME, a
+# visible menu (GRUB_TIMEOUT_STYLE=menu or countdown) or a text-only
+# GRUB_TERMINAL_OUTPUT. Removing the abyss-boot package removes it.
+
+[ "${GRUB_TIMEOUT_STYLE:-}" = hidden ] || exit 0
+[ -z "${GRUB_BACKGROUND:-}" ] && [ -z "${GRUB_THEME:-}" ] || exit 0
+case "${GRUB_TERMINAL_OUTPUT:-gfxterm}" in gfxterm) ;; *) exit 0 ;; esac
+
+# The picture (first install, new screen); GRUB stays black without it.
+splash="${ABYSS_BOOT_SPLASH:-/usr/bin/abyss-boot-splash}"
+if [ -x "$splash" ]; then
+    "$splash" >&2 || true
+fi
+
+cat <<'EOF'
+### Abyss boot splash (/etc/grub.d/05_abyss_splash, package abyss-boot) ###
+# The Abyss logo on black, no text. Shift or Esc: the menu, normal colours.
+if [ x"${timeout_style}" = xhidden ]; then
+  insmod png
+  if background_image "${prefix}/abyss-splash.png"; then
+    set abyss_color_normal="${color_normal}"
+    set color_normal=black/black
+    clear
+    # (GRUB's script language has no "or" and no "not")
+    if keystatus --shift; then
+      set abyss_menu=1
+    elif sleep --interruptible "${timeout}"; then
+      set abyss_menu=0
+    else
+      set abyss_menu=1
+    fi
+    if [ "${abyss_menu}" = 1 ]; then
+      background_image
+      if [ -n "${abyss_color_normal}" ]; then
+        set color_normal="${abyss_color_normal}"
+      else
+        set color_normal=light-gray/black
+      fi
+      clear
+      set timeout_style=menu
+      set timeout=-1
+    else
+      set timeout=0
+    fi
+  fi
+fi
+EOF

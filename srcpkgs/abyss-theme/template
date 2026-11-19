@@ -6,8 +6,10 @@
 #   rendered by files/backgrounds/make-abyss-orbit.py, which is not installed).
 pkgname=abyss-theme
 version=1.0
-revision=6
-depends="papirus-icon-theme xdg-user-dirs font-inter"
+revision=7
+# abyss-desktop>=1.0_36: its abyss-display-setup makes the login screen's
+# background (/var/lib/abyss-greeter/background, see lightdm-gtk-greeter.conf)
+depends="papirus-icon-theme xdg-user-dirs font-inter abyss-desktop>=1.0_36"
 short_desc="Abyss Linux dark GTK theme and violet folder icons"
 maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
 license="MIT"
@@ -36,7 +38,9 @@ do_install() {
 	# The greeter owns its main config; shipped defaults belong in its config.d.
 	vinstall ${FILESDIR}/lightdm-gtk-greeter.conf 644 etc/lightdm/lightdm-gtk-greeter.conf.d 50-abyss.conf
 
-	# Wallpapers. The default abyss-wallpaper.jpg and abyss-splash.png are
-	# ISO-only and must never be packaged.
+	# Wallpapers. The default abyss-wallpaper.jpg is ISO-only and must never
+	# be packaged. (abyss-splash.png, the old galaxy boot picture, is gone from
+	# new images; older installs keep their unowned copy, which nothing uses
+	# once abyss-boot has moved /etc/default/grub over.)
 	vinstall ${FILESDIR}/backgrounds/abyss-orbit.jpg 644 usr/share/backgrounds/abyss
 }

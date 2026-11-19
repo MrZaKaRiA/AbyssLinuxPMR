@@ -1,0 +1,49 @@
+# Template file for 'abyss-boot'
+# Clean Abyss start: the Abyss logo on black from GRUB to the login screen.
+#   GRUB:     /etc/grub.d/05_abyss_splash shows /boot/grub/abyss-splash.png
+#             (made by abyss-boot-splash at the screen's resolution) and keeps
+#             the "Loading Linux" lines invisible; Shift/Esc still open the menu
+#   Linux:    plymouth theme "abyss-logo" (same picture, from the initramfs)
+#             until LightDM's login screen takes over
+#   runit:    core-services/01-abyss-boot-splash.sh never lets the logo hide an
+#             emergency shell
+# Logo source: files/logo/abyss-logo.svg (PNGs rendered by make-logo-png.sh).
+# INSTALL moves systems installed from older images over (shipped GRUB lines
+# only) and rebuilds the initramfs once.
+pkgname=abyss-boot
+version=1.0
+revision=1
+hostmakedepends="pkg-config"
+makedepends="gdk-pixbuf-devel"
+depends="plymouth"
+short_desc="Abyss Linux boot logo: a silent start with the logo on black"
+maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
+license="MIT"
+homepage="https://github.com/MrZaKaRiA/AbyssLinux"
+
+do_build() {
+	$CC $CFLAGS $(pkg-config --cflags gdk-pixbuf-2.0) -o abyss-splash-render \
+		${FILESDIR}/abyss-splash-render.c $LDFLAGS $(pkg-config --libs gdk-pixbuf-2.0)
+}
+
+do_install() {
+	vinstall abyss-splash-render 755 usr/libexec/abyss-boot
+	vbin ${FILESDIR}/abyss-boot-splash
+	vinstall ${FILESDIR}/05_abyss_splash 755 etc/grub.d
+	vinstall ${FILESDIR}/01-abyss-boot-splash.sh 644 etc/runit/core-services
+
+	vinstall ${FILESDIR}/logo/abyss-logo.svg 644 usr/share/abyss/boot
+	for s in 128 192 256 384; do
+		vinstall ${FILESDIR}/logo/abyss-logo-${s}.png 644 usr/share/abyss/boot
+	done
+
+	local theme=usr/share/plymouth/themes/abyss-logo
+	vinstall ${FILESDIR}/plymouth/abyss-logo.plymouth 644 ${theme}
+	vinstall ${FILESDIR}/plymouth/abyss-logo.script 644 ${theme}
+	for f in abyss-field abyss-field-2x abyss-bullet abyss-bullet-2x; do
+		vinstall ${FILESDIR}/plymouth/${f}.png 644 ${theme}
+	done
+	for s in 128 192 256 384; do
+		ln -s ../../../abyss/boot/abyss-logo-${s}.png ${DESTDIR}/${theme}/abyss-logo-${s}.png
+	done
+}
