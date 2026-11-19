@@ -17,7 +17,9 @@
 # Periodic fstrim rather than the `discard` mount option: one batch a week
 # costs nothing while working, and needs no change to /etc/fstab.
 
-PATH=/usr/bin:/usr/sbin:/bin:/sbin:$PATH
+# The system directories go after the caller's PATH: a sparse PATH (runit,
+# doas) still finds xbps and fstrim, and the caller's choice of tools wins.
+PATH=${PATH:+$PATH:}/usr/bin:/usr/sbin:/bin:/sbin
 
 TRIM_STAMP=${ABYSS_TRIM_STAMP:-/var/lib/abyss-desktop/fstrim-last}  # epoch of the last run
 TRIM_LOG=${ABYSS_TRIM_LOG:-/var/log/abyss-fstrim.log}
