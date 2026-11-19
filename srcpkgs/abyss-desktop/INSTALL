@@ -158,5 +158,24 @@ EOF
 		fi
 		[ -z "$done_ntp" ] || { mkdir -p "${stamp%/*}" && : > "$stamp"; }
 	fi
+
+	# Weekly TRIM (abyss-fstrim, shipped here): tells the disk which blocks
+	# are free, so an SSD stays fast and a virtual machine's disk image
+	# shrinks after files are deleted. Enabled once per system; a user who
+	# disables it later keeps it disabled.
+	stamp=var/lib/abyss-desktop/fstrim-enabled
+	if [ ! -e "$stamp" ] && [ -f etc/sv/abyss-fstrim/run ]; then
+		link=etc/runit/runsvdir/default/abyss-fstrim
+		mkdir -p etc/runit/runsvdir/default
+		done_trim=yes
+		if [ ! -e "$link" ] && [ ! -L "$link" ]; then
+			if ln -s /etc/sv/abyss-fstrim "$link"; then
+				echo "abyss-desktop: enabled abyss-fstrim (weekly TRIM; to undo: rm /var/service/abyss-fstrim)" >&2
+			else
+				done_trim=
+			fi
+		fi
+		[ -z "$done_trim" ] || { mkdir -p "${stamp%/*}" && : > "$stamp"; }
+	fi
 	;;
 esac

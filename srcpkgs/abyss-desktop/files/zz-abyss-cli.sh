@@ -143,14 +143,26 @@ __abyss_root_upgrade() {
         echo "System is up to date."
     fi
     rm -f "$log" "$log.rc" "$log.before" "$log.after"
+    [ "$rc" -ne 0 ] || __abyss_clean_cache
     return "$rc"
 }
 
 __abyss_root_install() {
+    local rc
     __abyss_xbps_wait
     __abyss_sync || echo "Continuing with the package lists already on this computer." >&2
     __abyss_xbps_wait
     xbps-install "$@"
+    rc=$?
+    [ "$rc" -ne 0 ] || __abyss_clean_cache
+    return "$rc"
+}
+
+# After a successful install or upgrade: drop the package versions no
+# repository offers any more from the cache, and say how much that freed.
+__abyss_clean_cache() {
+    local care=${ABYSS_DISK_CARE:-/usr/libexec/abyss-desktop/disk-care}
+    [ ! -x "$care" ] || "$care" clean-cache
 }
 
 update() {

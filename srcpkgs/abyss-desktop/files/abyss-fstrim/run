@@ -1,0 +1,6 @@
+#!/bin/sh
+# Weekly TRIM of the mounted filesystems (abyss-desktop). The first check
+# waits 10 minutes after boot; the log is /var/log/abyss-fstrim.log.
+# To turn it off: rm /var/service/abyss-fstrim
+exec 2>&1
+exec /usr/libexec/abyss-desktop/disk-care trim-service

@@ -13,6 +13,10 @@ post)
 				rm -f "$wrapper"
 			fi
 		done
+		# the weekly TRIM service went with the package
+		for l in etc/runit/runsvdir/*/abyss-fstrim; do
+			if [ "$(readlink "$l" 2>/dev/null)" = /etc/sv/abyss-fstrim ]; then rm -f "$l"; fi
+		done
 	fi
 	;;
 esac

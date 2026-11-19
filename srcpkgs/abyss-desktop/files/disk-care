@@ -1,0 +1,172 @@
+#!/bin/sh
+# /usr/libexec/abyss-desktop/disk-care - keep an Abyss system's disk small
+#
+#   disk-care clean-cache   (root) after an install or upgrade: remove the
+#                           cached packages no repository offers any more
+#                           (xbps-remove -O) and say how much that freed.
+#                           The current ones stay, so they can be reinstalled
+#                           offline. Unneeded (orphan) packages are only named.
+#   disk-care free-space    (root, interactive) System > Free up disk space:
+#                           show what takes space, offer to clean it, then TRIM
+#   disk-care trim-service  the abyss-fstrim runit service: TRIM the mounted
+#                           filesystems (fstrim -a) once a week
+#
+# TRIM tells the disk which blocks are free. An SSD stays fast with it, and a
+# virtual machine's disk image only shrinks after it: deleted files leave
+# their old blocks allocated in the image until the guest trims them.
+# Periodic fstrim rather than the `discard` mount option: one batch a week
+# costs nothing while working, and needs no change to /etc/fstab.
+
+# The system directories go after the caller's PATH: a sparse PATH (runit,
+# doas) still finds xbps and fstrim, and the caller's choice of tools wins.
+PATH=${PATH:+$PATH:}/usr/bin:/usr/sbin:/bin:/sbin
+
+TRIM_STAMP=${ABYSS_TRIM_STAMP:-/var/lib/abyss-desktop/fstrim-last}  # epoch of the last run
+TRIM_LOG=${ABYSS_TRIM_LOG:-/var/log/abyss-fstrim.log}
+TRIM_DAYS=${ABYSS_TRIM_DAYS:-7}
+SYS_BLOCK=${ABYSS_SYS_BLOCK:-/sys/block}
+CMDLINE=${ABYSS_CMDLINE:-/proc/cmdline}
+
+human() {  # human KIB
+    awk -v k="$1" 'BEGIN { if (k >= 1048576) printf "%.1f GB", k / 1048576;
+        else if (k >= 1024) printf "%.0f MB", k / 1024; else printf "%d KB", k }'
+}
+
+# The xbps package cache (cachedir= in xbps.d, /var/cache/xbps by default)
+cache_dir() {
+    d=${ABYSS_XBPS_CACHE:-}
+    [ -n "$d" ] || d=$(cat /usr/share/xbps.d/*.conf /etc/xbps.d/*.conf 2>/dev/null |
+        sed -n 's/^[[:space:]]*cachedir[[:space:]]*=[[:space:]]*//p' | tail -n 1)
+    printf '%s\n' "${d:-/var/cache/xbps}"
+}
+
+kib() { du -sk "$1" 2>/dev/null | awk '{ print $1 + 0 }'; }
+
+orphans() { xbps-query -O 2>/dev/null | sed 's/-[^-]*$//' | tr '\n' ' ' | sed 's/ $//'; }
+
+clean_cache() {
+    dir=$(cache_dir)
+    before=$(kib "$dir"); before=${before:-0}
+    xbps-remove -O >/dev/null 2>&1 || echo "The package cache could not be cleaned (xbps-remove -O failed)." >&2
+    after=$(kib "$dir"); after=${after:-0}
+    [ "$before" -le "$after" ] || echo "Freed $(human $((before - after))) from the package cache."
+    o=$(orphans)
+    [ -z "$o" ] || echo "No longer needed by anything: $o (to remove: cleanup, or System > Free up disk space)"
+    return 0
+}
+
+ask() {  # ask "question" y|n: the default answer is in capitals
+    if [ "$2" = y ]; then printf '%s [Y/n] ' "$1"; else printf '%s [y/N] ' "$1"; fi
+    read -r a || a=
+    case ${a:-$2} in [Yy]*) return 0 ;; *) return 1 ;; esac
+}
+
+# Installed kernels vkpurge can remove, but never the running one nor the
+# newest one (the next boot starts it).
+old_kernels() {
+    command -v vkpurge >/dev/null 2>&1 || return 0
+    newest=$(ls /usr/lib/modules 2>/dev/null | sort -V | tail -n 1)
+    vkpurge list 2>/dev/null | grep -vxF -e "$(uname -r)" -e "${newest:-/}" | tr '\n' ' ' | sed 's/ $//'
+}
+
+free_kib() { df -Pk / 2>/dev/null | awk 'NR == 2 { print $4 + 0 }'; }
+
+free_space() {
+    [ "$(id -u)" -eq 0 ] || { echo "Run this as root (doas or sudo)." >&2; return 1; }
+    dir=$(cache_dir)
+    start=$(free_kib)
+    total=$(kib "$dir"); total=${total:-0}
+    nfiles=$(find "$dir" -maxdepth 1 -name '*.xbps' 2>/dev/null | wc -l | tr -d ' ')
+    kernels=$(old_kernels)
+    o=$(orphans)
+    echo "Free space on /: $(human "${start:-0}")"
+    echo "Package cache ($dir): $(human "$total") in $nfiles package files"
+    echo "Old kernels: ${kernels:-none}"
+    echo "Packages no longer needed by anything: ${o:-none}"
+    echo
+    if ask "Remove the cached package versions that were replaced by updates?" y; then
+        clean_cache >/dev/null
+        echo "Package cache: $(human "$(kib "$dir")") left."
+        if ask "Also remove the remaining cached packages (downloaded again when needed)?" n; then
+            find "$dir" -maxdepth 1 -type f \( -name '*.xbps' -o -name '*.xbps.sig' -o -name '*.xbps.sig2' \) -delete
+        fi
+    fi
+    if [ -n "$kernels" ] && ask "Remove the old kernels ($kernels)?" n; then
+        # shellcheck disable=SC2086
+        vkpurge rm $kernels
+    fi
+    if [ -n "$o" ] && ask "Remove the packages no longer needed ($o)?" n; then
+        xbps-remove -yo
+    fi
+    echo "Telling the disk which blocks are free (TRIM)..."
+    trim_now
+    end=$(free_kib)
+    if [ -n "$start" ] && [ -n "$end" ] && [ "$end" -gt "$start" ]; then
+        echo "Done: $(human $((end - start))) freed; $(human "$end") free on /."
+    else
+        echo "Done: $(human "${end:-0}") free on /."
+    fi
+}
+
+# --- weekly TRIM ---------------------------------------------------------
+log() {
+    line="$(date '+%Y-%m-%d %H:%M') $*"
+    printf '%s\n' "$line"
+    mkdir -p "${TRIM_LOG%/*}" 2>/dev/null
+    { tail -n 49 "$TRIM_LOG" 2>/dev/null; printf '%s\n' "$line"; } > "$TRIM_LOG.new" &&
+        mv -f "$TRIM_LOG.new" "$TRIM_LOG"
+}
+
+# Does any real disk take TRIM (discard)? Loop, RAM and zram devices aside.
+discard_capable() {
+    for q in "$SYS_BLOCK"/*/queue/discard_max_bytes; do
+        dev=${q%/queue/*}; dev=${dev##*/}
+        case $dev in loop*|ram*|zram*) continue ;; esac
+        [ "$(cat "$q" 2>/dev/null || echo 0)" -gt 0 ] 2>/dev/null && return 0
+    done
+    return 1
+}
+
+# Is a TRIM due? Not on the live ISO; yes when the last one is TRIM_DAYS old,
+# unrecorded, unreadable, or dated more than a day ahead (the clock was wrong
+# then: waiting for that date could take years).
+trim_due() {
+    grep -q 'root=live:' "$CMDLINE" 2>/dev/null && return 1
+    last=$(cat "$TRIM_STAMP" 2>/dev/null)
+    case $last in ''|*[!0-9]*) return 0 ;; esac
+    now=$(date +%s)
+    [ "$last" -le $((now + 86400)) ] || return 0
+    [ $((now - last)) -ge $((TRIM_DAYS * 86400)) ]
+}
+
+trim_now() {
+    if discard_capable; then
+        out=$(nice -n 19 fstrim -av 2>&1); rc=$?
+        # "/: 1.2 GiB (1288490188 bytes) trimmed on /dev/vda2" -> "/: 1.2 GiB"
+        sum=$(printf '%s\n' "$out" | sed -n 's/ ([0-9]* bytes) trimmed.*//p' | paste -sd ',' - | sed 's/,/, /g')
+        if [ "$rc" -eq 0 ]; then log "fstrim: trimmed ${sum:-nothing}"
+        else log "fstrim: exit $rc${sum:+, trimmed $sum}: $(printf '%s\n' "$out" | grep -v 'bytes) trimmed' | head -n 1)"; fi
+    else
+        log "fstrim: no disk here supports TRIM; nothing to do"
+    fi
+    mkdir -p "${TRIM_STAMP%/*}" && date +%s > "$TRIM_STAMP"
+}
+
+# runit service: wait out the boot, then check hourly. Checks go by the
+# stamp's date, so a week passed while the machine was off or asleep counts.
+trim_service() {
+    sleep "${ABYSS_TRIM_DELAY:-600}"
+    while :; do
+        trim_due && trim_now
+        [ -z "${ABYSS_TRIM_ONCE:-}" ] || return 0
+        sleep "${ABYSS_TRIM_POLL:-3600}"
+    done
+}
+
+case ${1:-} in
+    clean-cache)  clean_cache ;;
+    free-space)   free_space ;;
+    trim-service) trim_service ;;
+    trim-now)     trim_now ;;
+    *) echo "usage: ${0##*/} clean-cache | free-space | trim-service | trim-now" >&2; exit 2 ;;
+esac
