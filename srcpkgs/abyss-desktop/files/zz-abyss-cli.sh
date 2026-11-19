@@ -1,6 +1,8 @@
 # ==============================================================================
 # /etc/profile.d/zz-abyss-cli.sh  (shipped and updated by abyss-desktop)
 # Lightweight interactive shell helpers and Void package shortcuts.
+# /etc/profile runs this file in EVERY login shell (dash, busybox sh, bash):
+# keep it POSIX sh. Bash-only parts go in /usr/share/abyss/abyss-cli.bash.
 # Do not edit: package updates replace this file. Put your own definitions in
 # ~/.bashrc (or another /etc/profile.d file) instead.
 # The zz- name makes it load after every other profile.d file, including an
@@ -207,35 +209,12 @@ install() {
 # The root process (__abyss_as_root) needs only the package helpers above.
 [ "${__abyss_root_step:-}" = 1 ] && return 0
 
-# 3. Searchable dmenu package browser
-pkg-ui() {
-    command -v abyss-software >/dev/null 2>&1 && abyss-software --search || {
-        echo "abyss-software is not installed." >&2
-        return 1
-    }
-}
-
-# 4. Abyss Linux Cosmic Neon PS1 Prompt
-__abyss_git_branch() {
-    command -v git >/dev/null 2>&1 || return
-    local branch dirty=""
-    branch=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null) || return
-    if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-        dirty="*"
-    fi
-    printf " \001\033[1;38;5;51m\002(%s%s)\001\033[0m\002" "$branch" "$dirty"
-}
-
-__abyss_prompt_cmd() {
-    local u_col="197"
-    if [ "$(id -u)" -eq 0 ]; then
-        u_col="196"
-    fi
-    PS1="${debian_chroot:+($debian_chroot)}\[\e[1;38;5;${u_col}m\]\u\[\e[0m\]\[\e[38;5;250m\] at \[\e[1;38;5;141m\]\h\[\e[0m\] \[\e[38;5;244m\]in \[\e[1;38;5;191m\]\W\[\e[0m\]\$(__abyss_git_branch) \[\e[1;38;5;${u_col}m\]\$\[\e[0m\] "
-}
-
-if [ -n "${BASH_VERSION:-}" ]; then
-    PROMPT_COMMAND=__abyss_prompt_cmd
+# 3-4. pkg-ui and the prompt are bash-only: a function name like pkg-ui is a
+# syntax error that dash and busybox sh report while parsing this file (the
+# emergency shell, any `sh -l`), so they live in a file only bash reads.
+__abyss_cli_bash=/usr/share/abyss/abyss-cli.bash
+if [ -n "${BASH_VERSION:-}" ] && [ -r "$__abyss_cli_bash" ] && ! shopt -oq posix; then
+    . "$__abyss_cli_bash"
 fi
 
 # 5. Modern CLI Tool Aliases

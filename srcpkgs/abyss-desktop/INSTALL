@@ -81,6 +81,17 @@ EOF
 		fi
 	fi
 
+	# Images up to 27.3.4 kept the live ISO's /usr/local/bin/void-installer
+	# link on the installed system, where the installer it points to is
+	# removed. Remove only that dangling link; on the live ISO (installer
+	# present), or a link or file of the user's own, nothing changes. The
+	# target is checked inside the system root (xbps may run with -r).
+	vi=usr/local/bin/void-installer
+	if [ -L "$vi" ] && [ "$(readlink "$vi")" = /usr/bin/void-installer ] &&
+		[ ! -e usr/bin/void-installer ] && [ ! -L usr/bin/void-installer ]; then
+		rm -f "$vi"
+	fi
+
 	# elogind: stop runit from starting it. D-Bus starts elogind on demand
 	# (org.freedesktop.login1.service from the elogind package) as soon as
 	# LightDM, polkit or NetworkManager ask for it, which happens before
