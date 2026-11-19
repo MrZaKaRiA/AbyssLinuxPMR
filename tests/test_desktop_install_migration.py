@@ -9,7 +9,10 @@ Covers the one-off migrations:
     is byte-identical to a version an Abyss image shipped;
   * the stock elogind runit link is removed once (D-Bus starts elogind);
   * chronyd (time synchronisation) is enabled once, unless another NTP
-    client is enabled, and never again after the user disabled it.
+    client is enabled, and never again after the user disabled it;
+  * the live ISO's /usr/local/bin/void-installer link, dangling on an
+    installed system, is removed (only that link).
+Also checks that zz-abyss-cli.sh loads in every shell /etc/profile runs it in.
 The /usr/local/bin wrappers are covered by test_local_bin_wrappers.py.
 """
 import hashlib
@@ -31,6 +34,7 @@ OLD = 'etc/profile.d/99-void-dev-cli.sh'
 LINK = 'etc/runit/runsvdir/default/elogind'
 STAMP = 'var/lib/abyss-desktop/elogind-dbus-activated'
 CHRONY = 'etc/runit/runsvdir/default/chronyd'
+VI_LINK = 'usr/local/bin/void-installer'
 NTP_STAMP = 'var/lib/abyss-desktop/time-sync-enabled'
 
 # Same prologue as void-packages common/hooks/post-install/04-create-xbps-metadata-scripts.sh
@@ -120,6 +124,38 @@ class InstallMigrationTest(unittest.TestCase):
         path = out[6].split(':')
         self.assertEqual(path.count('/usr/local/bin'), 1, out[6])       # loaded twice, added once
         self.assertEqual(path.count(f'{self.root}/.local/bin'), 1, out[6])
+
+    # -- the live ISO's void-installer link ---------------------------------
+    def test_dangling_void_installer_link_is_removed(self):
+        self.path('usr/local/bin').mkdir(parents=True)
+        self.path(VI_LINK).symlink_to('/usr/bin/void-installer')
+        self.path('usr/local/bin/my-tool').symlink_to('/usr/bin/void-installer')
+        self.install()
+        self.assertFalse(os.path.lexists(self.path(VI_LINK)))
+        self.assertTrue(self.path('usr/local/bin/my-tool').is_symlink())
+        self.install()                                      # nothing left to do
+
+    def test_void_installer_link_kept_while_the_installer_exists(self):
+        # the live ISO (checked inside the system root, not on the host)
+        self.path('usr/bin').mkdir(parents=True)
+        self.path('usr/bin/void-installer').write_text('#!/bin/sh\n')
+        self.path('usr/local/bin').mkdir(parents=True)
+        self.path(VI_LINK).symlink_to('/usr/bin/void-installer')
+        self.install()
+        self.assertEqual(os.readlink(self.path(VI_LINK)), '/usr/bin/void-installer')
+
+    def test_users_own_void_installer_is_kept(self):
+        self.path('usr/local/bin').mkdir(parents=True)
+        for kind in ('other link', 'file'):
+            with self.subTest(kind):
+                if kind == 'file':
+                    self.path(VI_LINK).write_text('#!/bin/sh\n')
+                else:
+                    self.path(VI_LINK).symlink_to('/opt/void-installer')
+                self.install()
+                self.assertTrue(os.path.lexists(self.path(VI_LINK)))
+                self.assertEqual(self.path(VI_LINK).is_symlink(), kind != 'file')
+                self.path(VI_LINK).unlink()
 
     # -- elogind ---------------------------------------------------------
     def test_stock_elogind_link_is_removed_once(self):
@@ -238,6 +274,78 @@ class InstallMigrationTest(unittest.TestCase):
         self.install()
         self.assertFalse(os.path.lexists(self.path(LINK)))
         self.assertTrue(self.path(STAMP).is_file())
+
+
+@unittest.skipUnless(PKG, 'abyss-desktop package not found; set ABYSS_DESKTOP_PKG')
+class ProfileInEveryShellTest(unittest.TestCase):
+    """/etc/profile runs every profile.d/*.sh in every login shell: dash and
+    busybox sh (the emergency shell, `sh -l`) must parse zz-abyss-cli.sh, and
+    only bash gets the bash-only part (pkg-ui, the prompt)."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.dir = Path(tmp.name)
+        # the profile file with its bash part at its path in this checkout
+        text = (Path(PKG) / 'files/zz-abyss-cli.sh').read_text()
+        self.assertIn('__abyss_cli_bash=/usr/share/abyss/abyss-cli.bash\n', text)
+        self.profile = self.dir / 'zz-abyss-cli.sh'
+        self.profile.write_text(text.replace('/usr/share/abyss/abyss-cli.bash',
+                                             str(Path(PKG) / 'files/abyss-cli.bash')))
+
+    def posix_shells(self):
+        shells = [[s] for s in ('dash', 'posh', 'mksh', 'ksh') if shutil.which(s)]
+        if shutil.which('busybox'):
+            shells.append(['busybox', 'sh'])
+        shells.append(['bash', '--posix'])
+        shells.append(['/bin/sh'])
+        return shells
+
+    def run_shell(self, argv, code, interactive):
+        result = subprocess.run(argv + (['-i'] if interactive else []) + ['-c', code],
+                                env={'HOME': str(self.dir), 'PATH': '/usr/bin:/bin', 'PS1': '$ ', 'ENV': ''},
+                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                text=True, timeout=30, cwd=self.dir)
+        # an interactive shell without a terminal says so (and ksh prints PS1)
+        err = [l for l in result.stderr.splitlines() if l.strip() not in ('', '$')
+               and 'job control' not in l and "can't access tty" not in l
+               and 'terminal process group' not in l]
+        self.assertEqual(err, [], f'{argv}: {result.stderr}')
+        return result.returncode, result.stdout
+
+    def test_posix_shells_parse_it(self):
+        for argv in self.posix_shells():
+            with self.subTest(' '.join(argv)):
+                result = subprocess.run(argv + ['-n', str(Path(PKG) / 'files/zz-abyss-cli.sh')],
+                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, timeout=30)
+                self.assertEqual((result.returncode, result.stdout), (0, ''))
+
+    def test_posix_shells_load_it(self):
+        for argv in self.posix_shells():
+            for interactive in (False, True):
+                with self.subTest(' '.join(argv), interactive=interactive):
+                    rc, out = self.run_shell(argv, f'. "{self.profile}"; echo loaded; '
+                                             f'command -v update >/dev/null && echo has-update; '
+                                             f'command -v pkg-ui >/dev/null && echo has-pkg-ui; :', interactive)
+                    self.assertEqual(rc, 0, out)
+                    # non-interactive shells skip everything; interactive ones get the
+                    # package helpers but never the bash-only part
+                    self.assertEqual(out.split(), ['loaded', 'has-update'] if interactive else ['loaded'])
+
+    def test_root_step_loads_in_posix_shells(self):
+        # __abyss_as_root runs `/bin/sh -c '__abyss_root_step=1; . <file>; __abyss_root_<step>'`
+        for argv in self.posix_shells():
+            with self.subTest(' '.join(argv)):
+                rc, out = self.run_shell(argv, f'__abyss_root_step=1; . "{self.profile}" || exit 9; '
+                                         'for f in update upgrade install; do command -v __abyss_root_$f; done', False)
+                self.assertEqual((rc, out.split()), (0, ['__abyss_root_update', '__abyss_root_upgrade',
+                                                         '__abyss_root_install']), out)
+
+    def test_interactive_bash_gets_everything(self):
+        rc, out = self.run_shell(['bash', '--norc', '--noprofile'],
+                                 f'. "{self.profile}"; type -t update pkg-ui __abyss_prompt_cmd; '
+                                 'echo "$PROMPT_COMMAND"', True)
+        self.assertEqual(out.split(), ['function', 'function', 'function', '__abyss_prompt_cmd'], out)
 
 
 @unittest.skipUnless((ROOT / '.git').exists() and (ROOT / 'custom-overlay').is_dir(), 'needs the AbyssLinux git history')
