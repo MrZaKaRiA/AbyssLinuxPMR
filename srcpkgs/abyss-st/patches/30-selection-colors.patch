@@ -1,0 +1,76 @@
+diff --git a/config.def.h b/config.def.h
+index 9b2bea7..ff3272c 100644
+--- a/config.def.h
++++ b/config.def.h
+@@ -122,6 +122,8 @@ static const char *colorname[] = {
+ 	"#28203d", /* 257 -> rev cursor */
+ 	"#f3e8ff", /* 258 -> default foreground colour */
+ 	"#0d0b18", /* 259 -> default background colour */
++	"#ffffff", /* 260 -> selection foreground */
++	"#7c3aed", /* 261 -> selection background */
+ };
+ 
+ 
+@@ -134,6 +136,15 @@ unsigned int defaultbg = 259;
+ unsigned int defaultcs = 256;
+ static unsigned int defaultrcs = 257;
+ 
++/*
++ * Selected text is drawn with these colours instead of swapping the
++ * cell's foreground and background (a light block that flashes).
++ * Set ignoreselfg to 1 to keep each cell's own text colour.
++ */
++unsigned int selectionfg = 260;
++unsigned int selectionbg = 261;
++static int ignoreselfg = 0;
++
+ /*
+  * Default shape of cursor
+  * 2: Block ("█")
+diff --git a/st.h b/st.h
+index 818a6f8..9a611af 100644
+--- a/st.h
++++ b/st.h
+@@ -33,6 +33,7 @@ enum glyph_attribute {
+ 	ATTR_WRAP       = 1 << 8,
+ 	ATTR_WIDE       = 1 << 9,
+ 	ATTR_WDUMMY     = 1 << 10,
++	ATTR_SELECTED   = 1 << 11,
+ 	ATTR_BOLD_FAINT = ATTR_BOLD | ATTR_FAINT,
+ };
+ 
+diff --git a/x.c b/x.c
+index fe200f8..5294121 100644
+--- a/x.c
++++ b/x.c
+@@ -1462,6 +1462,12 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
+ 		bg = temp;
+ 	}
+ 
++	if (base.mode & ATTR_SELECTED) {
++		bg = &dc.col[selectionbg];
++		if (!ignoreselfg)
++			fg = &dc.col[selectionfg];
++	}
++
+ 	if (base.mode & ATTR_BLINK && win.mode & MODE_BLINK)
+ 		fg = bg;
+ 
+@@ -1528,7 +1534,7 @@ xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
+ 
+ 	/* remove the old cursor */
+ 	if (selected(ox, oy))
+-		og.mode ^= ATTR_REVERSE;
++		og.mode |= ATTR_SELECTED;
+ 	xdrawglyph(og, ox, oy);
+ 
+ 	if (IS_SET(MODE_HIDE))
+@@ -1670,7 +1676,7 @@ xdrawline(Line line, int x1, int y1, int x2)
+ 		if (new.mode == ATTR_WDUMMY)
+ 			continue;
+ 		if (selected(x, y1))
+-			new.mode ^= ATTR_REVERSE;
++			new.mode |= ATTR_SELECTED;
+ 		if (i > 0 && ATTRCMP(base, new)) {
+ 			xdrawglyphfontspecs(specs, base, i, ox, y1);
+ 			specs += i;
