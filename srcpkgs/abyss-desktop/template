@@ -2,7 +2,7 @@
 # Abyss desktop menus and lightweight helpers, updated through the signed PMR.
 pkgname=abyss-desktop
 version=1.0
-revision=40
+revision=41
 makedepends="libX11-devel"
 # chrony: time synchronisation (INSTALL enables chronyd once per system)
 # xkb-switch: the status bar's keyboard menu switches layouts with it
