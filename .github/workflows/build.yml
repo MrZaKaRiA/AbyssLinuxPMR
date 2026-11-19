@@ -60,6 +60,7 @@ jobs:
           ABYSS_THUNAR_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-thunar-init" python3 tests/test_thunar_init.py
           ABYSS_CHOOSER_INIT="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-file-chooser-init" python3 tests/test_file_chooser_init.py
           ABYSS_SOFTWARE="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-software" ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" ABYSS_SETUP="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-setup" ABYSS_BAR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-bar" ABYSS_PROFILE="$PWD/srcpkgs/abyss-desktop/files/zz-abyss-cli.sh" python3 tests/test_software_packages.py
+          ABYSS_SOFTWARE="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-software" ABYSS_CENTER="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-control-center" ABYSS_SETUP="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-setup" ABYSS_BAR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-bar" ABYSS_PROFILE="$PWD/srcpkgs/abyss-desktop/files/zz-abyss-cli.sh" python3 tests/test_software_shortcuts.py
           ABYSS_STATUSBAR="$PWD/srcpkgs/abyss-desktop/files/bin/dwm-statusbar" ABYSS_BAR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-bar" python3 tests/test_statusbar.py
           ABYSS_BAR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-bar" python3 tests/test_passwords.py
           ABYSS_DESKTOP_PKG="$PWD/srcpkgs/abyss-desktop" python3 tests/test_desktop_install_migration.py
