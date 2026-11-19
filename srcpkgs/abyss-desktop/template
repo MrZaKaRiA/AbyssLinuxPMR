@@ -2,7 +2,7 @@
 # Abyss desktop menus and lightweight helpers, updated through the signed PMR.
 pkgname=abyss-desktop
 version=1.0
-revision=41
+revision=42
 makedepends="libX11-devel"
 # chrony: time synchronisation (INSTALL enables chronyd once per system)
 # xkb-switch: the status bar's keyboard menu switches layouts with it
@@ -30,7 +30,15 @@ do_install() {
 	# runs the abyss-fstrim service (weekly TRIM; INSTALL enables it once)
 	vinstall ${FILESDIR}/disk-care 755 usr/libexec/abyss-desktop
 	vsv abyss-fstrim
+	# PipeWire for each desktop session: abyss-session starts it fresh at
+	# login and ends it at logout
+	vinstall ${FILESDIR}/session-audio 755 usr/libexec/abyss-desktop
 	vinstall ${FILESDIR}/abyss-images.desktop 644 usr/share/applications
+	# GnuPG's passphrase window (the Passwords menu's pinentry-program):
+	# pinentry-gtk-2 with Abyss dark GTK 2 colours
+	vinstall ${FILESDIR}/pinentry 755 usr/libexec/abyss-desktop
+	vmkdir usr/share/abyss/gtk-2.0
+	vinstall ${FILESDIR}/gtk2-dark.gtkrc 644 usr/share/abyss/gtk-2.0 gtkrc
 	# Interactive shell helpers (update, upgrade, install, ...). Not a
 	# conf_file on purpose: it is code that every update must be able to fix;
 	# local changes belong in ~/.bashrc. INSTALL migrates the old copy.
