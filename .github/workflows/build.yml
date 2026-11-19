@@ -64,6 +64,7 @@ jobs:
           ABYSS_BAR="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-bar" python3 tests/test_passwords.py
           ABYSS_DESKTOP_PKG="$PWD/srcpkgs/abyss-desktop" python3 tests/test_desktop_install_migration.py
           ABYSS_DESKTOP_PKG="$PWD/srcpkgs/abyss-desktop" python3 tests/test_local_bin_wrappers.py
+          ABYSS_DESKTOP_PKG="$PWD/srcpkgs/abyss-desktop" python3 tests/test_login_session.py
           ABYSS_BOOT_PKG="$PWD/srcpkgs/abyss-boot" python3 tests/test_boot_splash.py
           ABYSS_DISPLAY_SETUP="$PWD/srcpkgs/abyss-desktop/files/bin/abyss-display-setup" python3 tests/test_greeter_background.py
           cc -std=c99 -Wall -Wextra tests/dialog-window.c $(pkg-config --cflags --libs x11) -o /tmp/abyss-dialog-window-test

@@ -2,7 +2,7 @@
 # Abyss desktop menus and lightweight helpers, updated through the signed PMR.
 pkgname=abyss-desktop
 version=1.0
-revision=37
+revision=38
 makedepends="libX11-devel"
 # chrony: time synchronisation (INSTALL enables chronyd once per system)
 # xkb-switch: the status bar's keyboard menu switches layouts with it
@@ -40,5 +40,15 @@ do_install() {
 	# chronyd reads it through /etc/sv/chronyd/conf (written by INSTALL);
 	# it includes Void's /etc/chrony.conf and lets chronyd step the clock
 	vinstall ${FILESDIR}/chrony.conf 644 usr/share/abyss
+
+	# The current /etc/skel login files of the Abyss image. abyss-session
+	# puts them in place of a user's unedited copy of an older version (and
+	# starts this .xinitrc for a user who has none).
+	vmkdir usr/share/abyss/skel/.dwm
+	vinstall ${FILESDIR}/skel/xinitrc 755 usr/share/abyss/skel .xinitrc
+	vinstall ${FILESDIR}/skel/autostart.sh 755 usr/share/abyss/skel/.dwm autostart.sh
+	# feh for edited pre-27.3.3 login files only (see abyss-session)
+	vmkdir usr/libexec/abyss-desktop/legacy
+	vinstall ${FILESDIR}/legacy-feh 755 usr/libexec/abyss-desktop/legacy feh
 }
 
