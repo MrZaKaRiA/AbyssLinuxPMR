@@ -2,9 +2,10 @@
 # st 0.9.3 + upstream git fdaadd5 + Abyss patches (patches/):
 #   clipboard (selection also goes to CLIPBOARD), Abyss palette,
 #   JetBrainsMono Nerd Font in points so it follows Xft.dpi (HiDPI)
+#   scrollback (Shift+PageUp/PageDown, Shift+wheel), purple text selection
 pkgname=abyss-st
 version=0.9.3
-revision=2
+revision=3
 _gitrev=fdaadd5
 wrksrc="st-${version}"
 build_style=gnu-makefile
