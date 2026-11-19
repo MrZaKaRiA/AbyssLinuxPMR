@@ -1,0 +1,14 @@
+#!/bin/sh
+# managed by abyss-desktop: feh for a ~/.xinitrc or ~/.dwm/autostart.sh from
+# an image before 27.3.3 that the user edited (abyss-session puts this
+# directory first in PATH only then; unedited ones are updated instead).
+# Their `feh --bg-fill <the Abyss wallpaper>` drew the Abyss wallpaper over
+# the user's own right after login: that exact command now draws the saved
+# choice (abyss-wallpaper). Every other feh command runs feh unchanged.
+if [ "$#" -eq 2 ] && [ "$1" = --bg-fill ] && [ "$2" = /usr/share/backgrounds/abyss/abyss-wallpaper.jpg ] &&
+	[ -z "${ABYSS_LEGACY_FEH:-}" ] && command -v abyss-wallpaper >/dev/null 2>&1; then
+	ABYSS_LEGACY_FEH=1
+	export ABYSS_LEGACY_FEH
+	exec abyss-wallpaper
+fi
+exec /usr/bin/feh "$@"
