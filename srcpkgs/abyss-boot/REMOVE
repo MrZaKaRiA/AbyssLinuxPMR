@@ -1,0 +1,23 @@
+#!/bin/sh
+# abyss-boot removed (not updated): back to plain GRUB and plymouth defaults.
+case "$ACTION" in
+post)
+	if [ "$UPDATE" != yes ]; then
+		rm -f boot/grub/abyss-splash.png boot/grub/abyss-splash.id
+		if command -v plymouth-set-default-theme >/dev/null 2>&1 &&
+			[ "$(plymouth-set-default-theme 2>/dev/null)" = abyss-logo ]; then
+			plymouth-set-default-theme --reset >/dev/null 2>&1 || :
+		fi
+		# The initramfs list goes (the next install rebuilds them); the
+		# once-per-system tty1 decision stays, so a reinstall (xbps runs
+		# this for "xbps-install -f" too) never takes back a tty1 login the
+		# user brought back.
+		rm -f var/lib/abyss-boot/initramfs
+		# The menu without the splash snippet (it is gone with the package).
+		if [ "$(pwd -P)" = / ] && [ -f boot/grub/grub.cfg ] && command -v grub-mkconfig >/dev/null 2>&1; then
+			grub-mkconfig -o /boot/grub/grub.cfg >/dev/null 2>&1 ||
+				echo "abyss-boot: grub-mkconfig failed; run update-grub" >&2
+		fi
+	fi
+	;;
+esac

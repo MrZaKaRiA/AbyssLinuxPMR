@@ -1,0 +1,79 @@
+# Abyss boot splash (package abyss-boot): the Abyss logo in the middle of a
+# black screen, the same picture GRUB shows just before, so the handover from
+# GRUB is seamless. Nothing else, except the field for an encrypted disk's
+# password (images only: the initramfs has no fonts).
+#
+# Sizes follow the screen height like abyss-boot-splash does for GRUB. The
+# screen is not known yet when this script starts, so everything is placed in
+# the refresh function, which plymouth calls for every frame.
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
+
+logo_for = 0;
+pw_shown = 0;
+pw_count = 0;
+MAX_BULLETS = 24;
+
+fun place() {
+    h = Window.GetHeight();
+    w = Window.GetWidth();
+    if (h > 0) {
+        if (h != global.logo_for) {
+            if (h < 1300) {
+                global.logo = Image("abyss-logo-128.png");
+            } else if (h < 1700) {
+                global.logo = Image("abyss-logo-192.png");
+            } else if (h < 2500) {
+                global.logo = Image("abyss-logo-256.png");
+            } else {
+                global.logo = Image("abyss-logo-384.png");
+            }
+            if (h < 1500) {
+                global.field = Image("abyss-field.png");
+                global.bullet = Image("abyss-bullet.png");
+                global.unit = 1;
+            } else {
+                global.field = Image("abyss-field-2x.png");
+                global.bullet = Image("abyss-bullet-2x.png");
+                global.unit = 2;
+            }
+            global.logo_sprite = Sprite(global.logo);
+            global.logo_for = h;
+        }
+        cx = Window.GetX() + Math.Int(w / 2);
+        cy = Window.GetY() + Math.Int(h / 2);
+        global.logo_sprite.SetPosition(cx - Math.Int(global.logo.GetWidth() / 2), cy - Math.Int(global.logo.GetHeight() / 2), 1);
+
+        if (global.pw_shown) {
+            if (!global.field_sprite) global.field_sprite = Sprite(global.field);
+            fx = cx - Math.Int(global.field.GetWidth() / 2);
+            fy = cy + Math.Int(global.logo.GetHeight() / 2) + 32 * global.unit;
+            global.field_sprite.SetPosition(fx, fy, 2);
+            bx = fx + 44 * global.unit;
+            by = fy + Math.Int((global.field.GetHeight() - global.bullet.GetHeight()) / 2);
+            for (i = 0; i < global.MAX_BULLETS; i = i + 1) {
+                if (i < global.pw_count) {
+                    if (!global.bullets[i]) global.bullets[i] = Sprite(global.bullet);
+                    global.bullets[i].SetPosition(bx + i * 14 * global.unit, by, 3);
+                } else {
+                    global.bullets[i] = NULL;
+                }
+            }
+        } else {
+            global.field_sprite = NULL;
+            for (i = 0; i < global.MAX_BULLETS; i = i + 1) global.bullets[i] = NULL;
+        }
+    }
+}
+Plymouth.SetRefreshFunction(place);
+
+fun display_password(prompt, count) {
+    global.pw_shown = 1;
+    global.pw_count = count;
+}
+fun display_normal() {
+    global.pw_shown = 0;
+    global.pw_count = 0;
+}
+Plymouth.SetDisplayPasswordFunction(display_password);
+Plymouth.SetDisplayNormalFunction(display_normal);

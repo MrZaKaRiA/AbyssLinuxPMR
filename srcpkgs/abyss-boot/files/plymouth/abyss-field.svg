@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Disk password field of the Abyss boot splash (lock + box). 1x size;
+     make-images.sh renders it at 1x and 2x. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="300" height="44" viewBox="0 0 300 44">
+  <rect x="1" y="1" width="298" height="42" rx="12" fill="#14111d" stroke="#7c5cf0" stroke-width="1.5"/>
+  <g fill="none" stroke="#c4b5fd" stroke-width="2" stroke-linecap="round">
+    <path d="M17.5 20 v-4 a5.5 5.5 0 0 1 11 0 v4"/>
+  </g>
+  <rect x="14" y="20" width="18" height="13" rx="3" fill="#c4b5fd"/>
+</svg>
