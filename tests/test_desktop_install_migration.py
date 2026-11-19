@@ -10,6 +10,9 @@ Covers the one-off migrations:
   * the stock elogind runit link is removed once (D-Bus starts elogind);
   * chronyd (time synchronisation) is enabled once, unless another NTP
     client is enabled, and never again after the user disabled it;
+  * the system log (socklog-unix + nanoklogd) is enabled once, unless
+    another system logger is enabled, and never again after the user
+    disabled it;
   * the live ISO's /usr/local/bin/void-installer link, dangling on an
     installed system, is removed (only that link).
 Also checks that zz-abyss-cli.sh loads in every shell /etc/profile runs it in.
@@ -36,6 +39,7 @@ STAMP = 'var/lib/abyss-desktop/elogind-dbus-activated'
 CHRONY = 'etc/runit/runsvdir/default/chronyd'
 VI_LINK = 'usr/local/bin/void-installer'
 NTP_STAMP = 'var/lib/abyss-desktop/time-sync-enabled'
+LOG_STAMP = 'var/lib/abyss-desktop/syslog-enabled'
 
 # Same prologue as void-packages common/hooks/post-install/04-create-xbps-metadata-scripts.sh
 HEADER = '''#!/bin/sh
@@ -254,6 +258,67 @@ class InstallMigrationTest(unittest.TestCase):
         self.with_chrony()
         self.install()
         self.assertTrue(self.path(CHRONY).is_symlink())
+
+    # -- system log (socklog) ----------------------------------------------
+    def with_socklog(self):
+        for sv in ('socklog-unix', 'nanoklogd'):
+            run = self.path(f'etc/sv/{sv}/run')
+            run.parent.mkdir(parents=True)
+            run.write_text('#!/bin/sh\n')
+
+    def log_links(self):
+        return {sv: os.readlink(self.path(f'etc/runit/runsvdir/default/{sv}'))
+                for sv in ('socklog-unix', 'nanoklogd')
+                if os.path.lexists(self.path(f'etc/runit/runsvdir/default/{sv}'))}
+
+    def test_system_log_is_enabled_once(self):
+        self.with_socklog()
+        out = self.install()
+        self.assertEqual(self.log_links(), {'socklog-unix': '/etc/sv/socklog-unix', 'nanoklogd': '/etc/sv/nanoklogd'})
+        self.assertIn('enabled the system log', out)
+        self.assertTrue(self.path(LOG_STAMP).is_file())
+        self.assertNotIn('system log', self.install())          # a second update does nothing
+
+    def test_disabled_system_log_stays_disabled(self):
+        self.with_socklog()
+        self.install()
+        for sv in ('socklog-unix', 'nanoklogd'):                 # the user turns it off
+            self.path(f'etc/runit/runsvdir/default/{sv}').unlink()
+        self.install()
+        self.assertEqual(self.log_links(), {})
+
+    def test_another_system_logger_is_respected(self):
+        self.with_socklog()
+        for other in ('rsyslogd', 'syslog-ng', 'metalog', 'busybox-syslogd'):
+            with self.subTest(other):
+                link = self.path(f'etc/runit/runsvdir/default/{other}')
+                link.symlink_to(f'/etc/sv/{other}')
+                if self.path(LOG_STAMP).exists():
+                    self.path(LOG_STAMP).unlink()
+                out = self.install()
+                self.assertEqual(self.log_links(), {})
+                self.assertIn(f'left to the enabled {other} service', out)
+                self.assertTrue(self.path(LOG_STAMP).is_file())
+                link.unlink()
+
+    def test_socklog_already_enabled_only_adds_what_is_missing(self):
+        self.with_socklog()
+        self.path('etc/runit/runsvdir/default/nanoklogd').symlink_to('/etc/sv/nanoklogd')
+        self.install()
+        self.assertEqual(self.log_links(), {'socklog-unix': '/etc/sv/socklog-unix', 'nanoklogd': '/etc/sv/nanoklogd'})
+
+    def test_without_socklog_nothing_is_recorded(self):
+        self.install()
+        self.assertEqual(self.log_links(), {})
+        self.assertFalse(self.path(LOG_STAMP).exists())         # tried again once socklog is there
+        self.with_socklog()
+        self.install()
+        self.assertEqual(len(self.log_links()), 2)
+
+    def test_socklog_is_a_dependency(self):
+        template = (Path(PKG) / 'template').read_text()
+        depends = re.search(r'^depends="([^"]*)"', template, re.M).group(1).split()
+        self.assertIn('socklog-void', depends)
 
     @unittest.skipUnless(Path('/proc/self/comm').exists(), 'needs Linux /proc')
     def test_running_runit_elogind_is_not_stopped(self):

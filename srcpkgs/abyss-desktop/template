@@ -9,7 +9,9 @@ makedepends="libX11-devel"
 # (synthetic Alt+Shift presses do not reach XKB's group switch)
 # abyss-boot: the Abyss logo from GRUB to the login screen (so updated systems
 # get the clean start too)
-depends="abyss-st abyss-dmenu abyss-slock>=1.7_2 nsxiv feh xss-lock adwaita-icon-theme xmenu xdotool chrony xkb-switch abyss-boot"
+# socklog-void: the system log in /var/log/socklog (INSTALL enables it once
+# per system), so the cause of a freeze survives the forced restart
+depends="abyss-st abyss-dmenu abyss-slock>=1.7_2 nsxiv feh xss-lock adwaita-icon-theme xmenu xdotool chrony xkb-switch abyss-boot socklog-void"
 short_desc="Abyss desktop menus, software installer, and hardware setup tools"
 maintainer="MrZaKaRiA <67268825+MrZaKaRiA@users.noreply.github.com>"
 license="MIT"

@@ -177,5 +177,38 @@ EOF
 		fi
 		[ -z "$done_trim" ] || { mkdir -p "${stamp%/*}" && : > "$stamp"; }
 	fi
+
+	# System log (socklog-void, a dependency): keeps kernel and service
+	# messages in /var/log/socklog, so a freeze or crash that ends with a
+	# forced restart leaves its trace (hung tasks, out of memory, disk or
+	# graphics errors) for the next boot; dmesg alone is lost with the boot.
+	# svlogd rotates the files, so the log stays small. socklog-unix collects
+	# /dev/log, nanoklogd feeds it the kernel log. Enabled once per system and
+	# only when no other system logger is enabled; a user who disables it
+	# later keeps it disabled. Read it as root: svlogtail, or
+	# /var/log/socklog/kernel/current and /var/log/socklog/everything/current.
+	stamp=var/lib/abyss-desktop/syslog-enabled
+	if [ ! -e "$stamp" ] && [ -f etc/sv/socklog-unix/run ] && [ -f etc/sv/nanoklogd/run ]; then
+		other=
+		for sv in socklog-unix rsyslogd syslog-ng metalog sysklogd busybox-syslogd; do
+			for l in etc/runit/runsvdir/*/"$sv"; do
+				if [ -e "$l" ] || [ -L "$l" ]; then other=$sv; fi
+			done
+		done
+		done_log=yes
+		if [ -n "$other" ]; then
+			echo "abyss-desktop: system log left to the enabled $other service" >&2
+		else
+			mkdir -p etc/runit/runsvdir/default
+			for sv in socklog-unix nanoklogd; do
+				link=etc/runit/runsvdir/default/$sv
+				[ -e "$link" ] || [ -L "$link" ] || ln -s "/etc/sv/$sv" "$link" || done_log=
+			done
+			if [ -n "$done_log" ]; then
+				echo "abyss-desktop: enabled the system log in /var/log/socklog (socklog-unix, nanoklogd; to undo: rm /var/service/socklog-unix /var/service/nanoklogd)" >&2
+			fi
+		fi
+		[ -z "$done_log" ] || { mkdir -p "${stamp%/*}" && : > "$stamp"; }
+	fi
 	;;
 esac
